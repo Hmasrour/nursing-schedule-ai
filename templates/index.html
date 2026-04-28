@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Planning IA — Infirmiers</title>
+<style>
+:root {
+  --teal:       #0F6E56;
+  --teal-m:     #1D9E75;
+  --teal-l:     #E1F5EE;
+  --purple:     #534AB7;
+  --purple-l:   #EEEDFE;
+  --amber:      #854F0B;
+  --amber-l:    #FAEEDA;
+  --blue:       #185FA5;
+  --blue-l:     #E6F1FB;
+  --night:      #2C2C2A;
+  --night-l:    #D3D1C7;
+  --red:        #A32D2D;
+  --red-l:      #FCEBEB;
+  --gray:       #444441;
+  --gray-m:     #888780;
+  --gray-l:     #F1EFE8;
+  --border:     #D3D1C7;
+  --bg:         #FAFAF8;
+  --white:      #FFFFFF;
+}
+* { box-sizing:border-box; margin:0; padding:0; }
+body { font-family:'Segoe UI',Arial,sans-serif; background:#F0EDE6; color:var(--gray); min-height:100vh; }
+
+/* ── TOP BAR ── */
+.topbar {
+  background:var(--teal);
+  padding:0 24px;
+  height:56px;
+  display:flex;
+  align-items:center;
+  gap:12px;
+  position:sticky; top:0; z-index:100;
+  box-shadow:0 2px 8px rgba(0,0,0,.15);
+}
+.topbar-logo { font-size:22px; }
+.topbar-title { color:#fff; font-size:16px; font-weight:600; }
+.topbar-sub { color:rgba(255,255,255,.65); font-size:12px; margin-left:4px; }
+.topbar-actions { margin-left:auto; display:flex; gap:8px; align-items:center; }
+.btn { padding:7px 14px; border-radius:8px; font-size:13px; font-weight:500;
+       cursor:pointer; border:none; transition:all .15s; }
+.btn-white { background:#fff; color:var(--teal); }
+.btn-white:hover { background:var(--teal-l); }
+.btn-outline { background:transparent; color:#fff; border:1px solid rgba(255,255,255,.4); }
+.btn-outline:hover { background:rgba(255,255,255,.1); }
+.btn-teal { background:var(--teal-m); color:#fff; }
+.btn-teal:hover { background:var(--teal); }
+.status-dot { width:8px; height:8px; border-radius:50%; background:#4ade80;
+              animation:pulse 2s ease-in-out infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+/* ── LAYOUT ── */
+.layout { display:flex; height:calc(100vh - 56px); }
+
+/* ── PANNEAU CHAT ── */
+.chat-panel {
+  width:360px; flex-shrink:0;
+  background:var(--white);
+  border-right:1px solid var(--border);
+  display:flex; flex-direction:column;
+}
+.chat-header {
+  padding:14px 16px;
+  border-bottom:1px solid var(--border);
+  background:var(--bg);
+}
+.chat-header-title { font-size:13px; font-weight:600; color:var(--gray); display:flex; align-items:center; gap:6px; }
+.chat-header-sub { font-size:11px; color:var(--gray-m); margin-top:3px; }
+
+.api-bar {
+  padding:10px 14px;
+  border-bottom:1px solid var(--border);
+  background:var(--amber-l);
+  display:flex; gap:8px; align-items:center;
+}
+.api-bar.ok { background:var(--teal-l); }
+.api-bar input {
+  flex:1; padding:6px 10px; border:1px solid var(--border);
+  border-radius:6px; font-size:12px;
+}
+.api-bar button {
+  padding:6px 12px; border:none; border-radius:6px;
+  background:var(--amber); color:#fff; font-size:12px;
+  font-weight:600; cursor:pointer; white-space:nowrap;
+}
+.api-bar.ok button { background:var(--teal); }
+
+.chips-bar { padding:8px 12px; border-bottom:1px solid var(--border); display:flex; flex-wrap:wrap; gap:5px; }
+.chip {
+  font-size:11px; padding:4px 10px; border-radius:999px;
+  border:1px solid var(--border); background:var(--white);
+  color:var(--gray-m); cursor:pointer; transition:all .15s;
+}
+.chip:hover { background:var(--teal-l); border-color:var(--teal-m); color:var(--teal); }
+
+.messages { flex:1; overflow-y:auto; padding:12px; display:flex; flex-direction:column; gap:10px; background:var(--bg); }
+.msg { display:flex; flex-direction:column; max-width:94%; }
+.msg.user { align-self:flex-end; align-items:flex-end; }
+.msg.ai   { align-self:flex-start; align-items:flex-start; }
+.msg-who  { font-size:10px; color:var(--gray-m); margin-bottom:3px; }
+.bubble {
+  border-radius:12px; padding:9px 13px;
+  font-size:12.5px; line-height:1.6;
+}
+.msg.user .bubble { background:var(--teal); color:#fff; border-bottom-right-radius:3px; }
+.msg.ai   .bubble { background:var(--white); border:1px solid var(--border); border-bottom-left-radius:3px; }
+.bubble b { color:var(--teal); }
+.bubble ul { padding-left:16px; margin-top:4px; }
+.bubble li { margin-bottom:2px; }
+
+.modif-list {
+  margin-top:8px; padding:8px 10px;
+  background:var(--teal-l); border-radius:8px;
+  border-left:3px solid var(--teal-m);
+  font-size:11px; color:var(--teal);
+}
+.modif-list div { padding:2px 0; }
+
+.thinking { display:flex; gap:4px; align-items:center; padding:10px 14px;
+            background:var(--white); border:1px solid var(--border); border-radius:12px; }
+.dot { width:7px; height:7px; border-radius:50%; background:var(--teal-m);
+       animation:dp 1.4s ease-in-out infinite; }
+.dot:nth-child(2){animation-delay:.2s} .dot:nth-child(3){animation-delay:.4s}
+@keyframes dp { 0%,80%,100%{transform:scale(.6);opacity:.4} 40%{transform:scale(1);opacity:1} }
+
+.input-row {
+  padding:10px 12px; border-top:1px solid var(--border);
+  background:var(--white); display:flex; gap:8px;
+}
+.input-row textarea {
+  flex:1; border:1px solid var(--border); border-radius:10px;
+  padding:8px 12px; font-size:12.5px; font-family:inherit;
+  resize:none; outline:none; background:var(--bg);
+  transition:border-color .15s; max-height:90px; line-height:1.4;
+}
+.input-row textarea:focus { border-color:var(--teal-m); }
+.send-btn {
+  width:38px; height:38px; border-radius:50%; background:var(--teal);
+  border:none; color:#fff; font-size:17px; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  align-self:flex-end; flex-shrink:0; transition:background .15s;
+}
+.send-btn:hover { background:var(--teal-m); }
+.send-btn:disabled { background:var(--border); cursor:not-allowed; }
+
+/* ── MAIN CONTENT ── */
+.main { flex:1; overflow-y:auto; padding:20px 24px; }
+
+/* ── STATS ── */
+.stats { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:20px; }
+.stat-card { background:var(--white); border-radius:12px; padding:14px 16px;
+             border:1px solid var(--border); }
+.stat-label { font-size:11px; color:var(--gray-m); margin-bottom:4px; text-transform:uppercase; letter-spacing:.04em; }
+.stat-value { font-size:24px; font-weight:600; color:var(--gray); }
+.stat-sub   { font-size:11px; color:var(--gray-m); margin-top:2px; }
+
+/* ── TABLE ── */
+.table-card { background:var(--white); border-radius:14px; border:1px solid var(--border); overflow:hidden; margin-bottom:20px; }
+.table-header { padding:14px 18px; border-bottom:1px solid var(--border);
+                display:flex; align-items:center; justify-content:space-between; }
+.table-title { font-size:14px; font-weight:600; color:var(--gray); }
+.table-actions { display:flex; gap:8px; }
+.btn-sm { padding:6px 12px; font-size:12px; border-radius:7px; cursor:pointer;
+          border:1px solid var(--border); background:var(--white); color:var(--gray-m);
+          transition:all .15s; }
+.btn-sm:hover { background:var(--teal-l); border-color:var(--teal-m); color:var(--teal); }
+.btn-sm.primary { background:var(--teal); color:#fff; border-color:var(--teal); }
+.btn-sm.primary:hover { background:var(--teal-m); }
+
+table { width:100%; border-collapse:collapse; }
+th {
+  padding:10px 10px; font-size:11px; font-weight:600; text-transform:uppercase;
+  letter-spacing:.05em; color:var(--white); background:var(--teal-m);
+  text-align:center; white-space:nowrap;
+}
+th:first-child { text-align:left; padding-left:16px; }
+th:nth-child(2) { text-align:left; }
+td { padding:0; border-bottom:1px solid var(--border); }
+tr:last-child td { border-bottom:none; }
+tr:hover td { background:rgba(29,158,117,.03); }
+
+.td-num { padding:10px 10px; text-align:center; font-size:12px; color:var(--gray-m); }
+.td-name { padding:10px 16px; }
+.td-name .name { font-size:13px; font-weight:600; color:var(--gray); }
+.td-name .service { font-size:11px; color:var(--gray-m); margin-top:1px; }
+.td-garde { padding:6px 4px; text-align:center; }
+
+.garde {
+  display:inline-flex; align-items:center; justify-content:center;
+  width:36px; height:28px; border-radius:6px;
+  font-size:12px; font-weight:700; cursor:pointer;
+  transition:transform .1s, opacity .15s;
+  user-select:none;
+}
+.garde:hover { transform:scale(1.1); opacity:.85; }
+.garde-M { background:var(--blue-l); color:var(--blue); }
+.garde-S { background:var(--purple-l); color:var(--purple); }
+.garde-N { background:var(--night); color:var(--night-l); }
+.garde-R { background:var(--teal-l); color:var(--teal); }
+.garde-C { background:var(--amber-l); color:var(--amber); }
+.garde-? { background:var(--red-l); color:var(--red); }
+
+.td-heures { padding:8px 10px; text-align:center; }
+.heures-badge { display:inline-block; padding:3px 10px; border-radius:999px; font-size:12px; font-weight:600; }
+.h-ok  { background:var(--teal-l); color:var(--teal); }
+.h-warn{ background:var(--amber-l); color:var(--amber); }
+.h-bad { background:var(--red-l); color:var(--red); }
+
+.td-alertes { padding:8px 12px; font-size:11px; }
+.alerte { color:var(--red); font-weight:500; }
+
+/* ── LÉGENDE ── */
+.legend { display:flex; gap:14px; flex-wrap:wrap; padding:12px 18px;
+          border-top:1px solid var(--border); background:var(--bg); }
+.leg-item { display:flex; align-items:center; gap:5px; font-size:11px; color:var(--gray-m); }
+.leg-dot { width:12px; height:12px; border-radius:3px; }
+
+/* ── TOTAL ROW ── */
+.total-row td { background:var(--teal-l); font-size:11px; color:var(--teal); font-weight:600; padding:8px 10px; text-align:center; }
+.total-row td:first-child { text-align:left; padding-left:16px; }
+
+/* Scrollbars */
+.messages::-webkit-scrollbar { width:4px; }
+.messages::-webkit-scrollbar-thumb { background:var(--border); border-radius:4px; }
+
+/* Toast */
+.toast {
+  position:fixed; bottom:24px; right:24px;
+  background:var(--teal); color:#fff;
+  padding:10px 18px; border-radius:10px;
+  font-size:13px; font-weight:500;
+  box-shadow:0 4px 16px rgba(0,0,0,.15);
+  transform:translateY(80px); opacity:0;
+  transition:all .3s ease;
+  z-index:999;
+}
+.toast.show { transform:translateY(0); opacity:1; }
+
+/* Modal pour clic cellule */
+.modal-bg {
+  display:none; position:fixed; inset:0;
+  background:rgba(0,0,0,.3); z-index:200;
+  align-items:center; justify-content:center;
+}
+.modal-bg.open { display:flex; }
+.modal {
+  background:var(--white); border-radius:14px;
+  padding:20px 24px; min-width:260px;
+  box-shadow:0 8px 32px rgba(0,0,0,.2);
+}
+.modal-title { font-size:14px; font-weight:600; margin-bottom:14px; }
+.garde-options { display:flex; gap:8px; flex-wrap:wrap; }
+.garde-opt {
+  width:50px; height:40px; border-radius:8px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:14px; font-weight:700; cursor:pointer;
+  transition:transform .1s;
+}
+.garde-opt:hover { transform:scale(1.08); }
+.modal-cancel { margin-top:14px; width:100%; padding:8px; border:1px solid var(--border);
+                background:none; border-radius:8px; cursor:pointer; font-size:13px; color:var(--gray-m); }
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="topbar-logo">🏥</div>
+  <div>
+    <div class="topbar-title">Planning IA — Infirmiers</div>
+  </div>
+  <span class="topbar-sub">Propulsé par Groq</span>
+  <div class="topbar-actions">
+    <div class="status-dot" id="status-dot"></div>
+    <button class="btn btn-outline" onclick="resetPlanning()">↺ Réinitialiser</button>
+    <button class="btn btn-white" onclick="exporterExcel()">⬇ Export Excel</button>
+  </div>
+</div>
+
+<!-- LAYOUT -->
+<div class="layout">
+
+  <!-- CHAT -->
+  <div class="chat-panel">
+    <div class="chat-header">
+      <div class="chat-header-title">🤖 Assistant IA</div>
+      <div class="chat-header-sub">Modifiez le planning en langage naturel</div>
+    </div>
+
+    <div class="api-bar" id="api-bar">
+      <input type="password" id="api-key" placeholder="Clé Groq : gsk_..." />
+      <button onclick="sauvegarderCle()">Enregistrer</button>
+    </div>
+
+    <div class="chips-bar">
+      <div class="chip" onclick="envoyer('Déplace Sophie du lundi matin au mercredi soir')">↔ Déplacer</div>
+      <div class="chip" onclick="envoyer('Qui est disponible samedi nuit ?')">👤 Dispo</div>
+      <div class="chip" onclick="envoyer('Génère un planning équitable pour la semaine prochaine en rotation M/S/N')">📅 Générer</div>
+      <div class="chip" onclick="envoyer('Vérifie les conflits et heures sup du planning actuel')">⚠ Vérifier</div>
+    </div>
+
+    <div class="messages" id="messages">
+      <div class="msg ai">
+        <div class="msg-who">Assistant IA</div>
+        <div class="bubble">
+          Bonjour ! Je peux <b>lire et modifier</b> votre planning directement.<br><br>
+          Essayez par exemple :<br>
+          <ul>
+            <li>Déplace Sophie du lundi au jeudi</li>
+            <li>Échange Thomas et Hugo mercredi</li>
+            <li>Mets Karim en congé vendredi</li>
+            <li>Génère le planning semaine prochaine</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="input-row">
+      <textarea id="user-input" placeholder="Tapez votre instruction…" rows="1"
+        onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();envoyer()}"
+        oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,90)+'px'"></textarea>
+      <button class="send-btn" id="send-btn" onclick="envoyer()">➤</button>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main">
+
+    <!-- STATS -->
+    <div class="stats" id="stats"></div>
+
+    <!-- TABLE -->
+    <div class="table-card">
+      <div class="table-header">
+        <div class="table-title" id="table-title">Planning — Semaine du …</div>
+        <div class="table-actions">
+          <button class="btn-sm primary" onclick="ouvrirModalInfirmier()">➕ Ajouter un infirmier</button>
+          <button class="btn-sm" onclick="exporterExcel()">⬇ Exporter en Excel</button>
+        </div>
+      </div>
+      <div style="overflow-x:auto">
+        <table id="planning-table">
+          <thead id="table-head"></thead>
+          <tbody id="table-body"></tbody>
+        </table>
+      </div>
+      <div class="legend">
+        <div class="leg-item"><div class="leg-dot" style="background:#E6F1FB"></div>M = Matin 7h–15h</div>
+        <div class="leg-item"><div class="leg-dot" style="background:#EEEDFE"></div>S = Soir 15h–23h</div>
+        <div class="leg-item"><div class="leg-dot" style="background:#2C2C2A"></div>N = Nuit 23h–7h</div>
+        <div class="leg-item"><div class="leg-dot" style="background:#E1F5EE"></div>R = Repos</div>
+        <div class="leg-item"><div class="leg-dot" style="background:#FAEEDA"></div>C = Congé</div>
+        <div class="leg-item" style="margin-left:auto;font-size:11px;color:#888">💡 Cliquez sur une cellule pour la modifier</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- MODAL INFIRMIER -->
+<div class="modal-bg" id="modal-inf-bg">
+  <div class="modal">
+    <div class="modal-title" id="modal-inf-title">Ajouter un infirmier</div>
+    <div style="display:flex; flex-direction:column; gap:10px;">
+      <input type="hidden" id="inf-id-input" />
+      <input type="text" id="inf-nom-input" placeholder="Nom complet" style="padding:8px; border:1px solid var(--border); border-radius:6px;" />
+      <input type="text" id="inf-service-input" placeholder="Service" style="padding:8px; border:1px solid var(--border); border-radius:6px;" />
+      <button class="btn-sm primary" style="margin-top:10px; width:100%; padding:10px;" onclick="sauvegarderInfirmier()">Enregistrer</button>
+      <button class="modal-cancel" style="margin-top:4px;" onclick="fermerModalInfirmier()">Annuler</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL MODIFICATION CELLULE -->
+<div class="modal-bg" id="modal-bg">
+  <div class="modal">
+    <div class="modal-title" id="modal-title">Modifier la garde</div>
+    <div class="garde-options">
+      <div class="garde-opt garde-M" onclick="appliquerModal('M')">M</div>
+      <div class="garde-opt garde-S" onclick="appliquerModal('S')">S</div>
+      <div class="garde-opt garde-N" onclick="appliquerModal('N')">N</div>
+      <div class="garde-opt garde-R" onclick="appliquerModal('R')">R</div>
+      <div class="garde-opt garde-C" onclick="appliquerModal('C')">C</div>
+    </div>
+    <button class="modal-cancel" onclick="fermerModal()">Annuler</button>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+let planningData = null;
+let historique   = [];
+let apiKey       = localStorage.getItem("groq_key") || "";
+let modalInfId   = null;
+let modalJourIdx = null;
+
+// ── INIT ──────────────────────────────────────────────────────────────
+document.addEventListener("DOMContentLoaded", () => {
+  if (apiKey) {
+    document.getElementById("api-key").value = apiKey;
+    document.getElementById("api-bar").classList.add("ok");
+  }
+  chargerPlanning();
+});
+
+function sauvegarderCle() {
+  apiKey = document.getElementById("api-key").value.trim();
+  if (!apiKey) return;
+  localStorage.setItem("groq_key", apiKey);
+  document.getElementById("api-bar").classList.add("ok");
+  afficherToast("Clé API enregistrée ✅");
+}
+
+// ── CHARGEMENT DU PLANNING ────────────────────────────────────────────
+function ouvrirModalInfirmier(id = null, nom = "", service = "") {
+  document.getElementById("inf-id-input").value = id || "";
+  document.getElementById("inf-nom-input").value = nom;
+  document.getElementById("inf-service-input").value = service;
+  document.getElementById("modal-inf-title").textContent = id ? "Modifier l'infirmier" : "Ajouter un infirmier";
+  document.getElementById("modal-inf-bg").classList.add("open");
+}
+function fermerModalInfirmier() { document.getElementById("modal-inf-bg").classList.remove("open"); }
+
+async function sauvegarderInfirmier() {
+  const id = document.getElementById("inf-id-input").value;
+  const nom = document.getElementById("inf-nom-input").value.trim();
+  const service = document.getElementById("inf-service-input").value.trim();
+  if (!nom) return afficherToast("Le nom est obligatoire");
+  
+  fermerModalInfirmier();
+  if (id) {
+    await fetch("/api/infirmier/" + id, {
+      method:"PUT", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({nom, service})
+    });
+    afficherToast("Infirmier modifié");
+  } else {
+    await fetch("/api/infirmier", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({nom, service})
+    });
+    afficherToast("Infirmier ajouté");
+  }
+  chargerPlanning();
+}
+
+async function supprimerInfirmier(id, nom) {
+  if (!confirm("Voulez-vous vraiment supprimer " + nom + " ?")) return;
+  await fetch("/api/infirmier/" + id, { method:"DELETE" });
+  afficherToast("Infirmier supprimé");
+  chargerPlanning();
+}
+
+async function chargerPlanning() {
+  const resp = await fetch("/api/planning");
+  planningData = await resp.json();
+  afficherPlanning();
+}
+
+function afficherPlanning() {
+  const d = planningData;
+  document.getElementById("table-title").textContent =
+    `Planning — Semaine du ${d.semaine}`;
+
+  // Stats
+  let totalH = 0, alertes = 0, nuits = 0;
+  d.infirmiers.forEach(i => { totalH += i.heures; nuits += i.nuits; alertes += i.alertes.length; });
+  document.getElementById("stats").innerHTML = `
+    <div class="stat-card"><div class="stat-label">Infirmiers</div>
+      <div class="stat-value">${d.infirmiers.length}</div>
+      <div class="stat-sub">en service</div></div>
+    <div class="stat-card"><div class="stat-label">Heures planifiées</div>
+      <div class="stat-value">${totalH}h</div>
+      <div class="stat-sub">cette semaine</div></div>
+    <div class="stat-card"><div class="stat-label">Gardes de nuit</div>
+      <div class="stat-value">${nuits}</div>
+      <div class="stat-sub">au total</div></div>
+    <div class="stat-card"><div class="stat-label">Alertes</div>
+      <div class="stat-value" style="color:${alertes>0?'var(--red)':'var(--teal)'}">${alertes}</div>
+      <div class="stat-sub">${alertes===0?'aucun conflit':'à vérifier'}</div></div>`;
+
+  // Header
+  document.getElementById("table-head").innerHTML = `<tr>
+    <th style="width:40px">#</th>
+    <th style="text-align:left;min-width:160px">Infirmier</th>
+    ${d.jours.map(j=>`<th>${j}</th>`).join("")}
+    <th>Total H</th><th>Nuits</th><th>Alertes</th></tr>`;
+
+  // Body
+  const tbody = document.getElementById("table-body");
+  tbody.innerHTML = "";
+
+  d.infirmiers.forEach((inf, idx) => {
+    const tr = document.createElement("tr");
+    let hClass = inf.heures > 44 ? "h-bad" : inf.heures >= 35 ? "h-ok" : "h-warn";
+    tr.innerHTML = `
+      <td class="td-num">${idx+1}</td>
+      <td class="td-name">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <div class="name">${inf.nom}</div>
+            <div class="service">${inf.service}</div>
+          </div>
+          <div style="display:flex; gap:4px;">
+            <button class="btn-sm" style="padding:2px 6px; font-size:11px;" onclick="ouvrirModalInfirmier(${inf.id}, '${inf.nom.replace(/'/g, "\\'")}', '${inf.service.replace(/'/g, "\\'")}')" title="Modifier">✏️</button>
+            <button class="btn-sm" style="padding:2px 6px; font-size:11px; color:var(--red);" onclick="supprimerInfirmier(${inf.id}, '${inf.nom.replace(/'/g, "\\'")}')" title="Supprimer">🗑️</button>
+          </div>
+        </div>
+      </td>
+      ${inf.gardes.map((g,di) => `
+        <td class="td-garde">
+          <div class="garde garde-${g}" onclick="ouvrirModal(${inf.id},${di},'${g}','${inf.nom}')"
+               title="${inf.nom} — ${d.jours[di]}">${g}</div>
+        </td>`).join("")}
+      <td class="td-heures"><span class="heures-badge ${hClass}">${inf.heures}h</span></td>
+      <td class="td-heures"><span style="font-size:13px;font-weight:600;color:${inf.nuits>=3?'var(--amber)':'var(--gray-m)'}">${inf.nuits}</span></td>
+      <td class="td-alertes"><span class="alerte">${inf.alertes.join(" ")}</span></td>`;
+    tbody.appendChild(tr);
+  });
+
+  // Total row
+  const totals = d.jours.map((j, di) => {
+    const gardes = d.infirmiers.map(i => i.gardes[di]);
+    return `M:${gardes.filter(g=>g==="M").length} S:${gardes.filter(g=>g==="S").length} N:${gardes.filter(g=>g==="N").length}`;
+  });
+  const trTotal = document.createElement("tr");
+  trTotal.className = "total-row";
+  trTotal.innerHTML = `<td colspan="2">TOTAL PAR JOUR</td>${totals.map(t=>`<td>${t}</td>`).join("")}<td colspan="3"></td>`;
+  tbody.appendChild(trTotal);
+}
+
+// ── MODAL CLIC CELLULE ────────────────────────────────────────────────
+function ouvrirModal(infId, jourIdx, gardeActuelle, nomInf) {
+  modalInfId = infId; modalJourIdx = jourIdx;
+  document.getElementById("modal-title").textContent =
+    `${nomInf} — ${planningData.jours[jourIdx]} (actuel: ${gardeActuelle})`;
+  document.getElementById("modal-bg").classList.add("open");
+}
+function fermerModal() { document.getElementById("modal-bg").classList.remove("open"); }
+async function appliquerModal(nouvelleGarde) {
+  fermerModal();
+  const inf = planningData.infirmiers.find(i => i.id === modalInfId);
+  if (!inf) return;
+  inf.gardes[modalJourIdx] = nouvelleGarde;
+  await fetch("/api/planning", {
+    method:"POST", headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({infirmiers: planningData.infirmiers})
+  });
+  await chargerPlanning();
+  afficherToast(`${inf.nom} → ${planningData.jours[modalJourIdx]} : ${nouvelleGarde}`);
+}
+
+// ── CHAT ──────────────────────────────────────────────────────────────
+async function envoyer(texteForce) {
+  const input = document.getElementById("user-input");
+  const texte = texteForce || input.value.trim();
+  if (!texte) return;
+  if (!apiKey) {
+    ajouterMessage("ai", "⚠️ Entrez d'abord votre clé API Groq dans le champ en haut.");
+    return;
+  }
+  input.value = ""; input.style.height = "auto";
+  document.getElementById("send-btn").disabled = true;
+
+  ajouterMessage("user", texte);
+  const thinkEl = afficherThinking();
+
+  historique.push({role:"user", content: texte});
+
+  try {
+    const resp = await fetch("/api/chat", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({message: texte, api_key: apiKey, historique})
+    });
+    const data = await resp.json();
+    thinkEl.remove();
+
+    if (!resp.ok) {
+      ajouterMessage("ai", `❌ ${data.erreur}`);
+      historique.pop();
+    } else {
+      historique.push({role:"assistant", content: data.texte});
+      let html = data.texte.replace(/\*\*(.*?)\*\*/g,"<b>$1</b>").replace(/\n/g,"<br>");
+      if (data.modifications && data.modifications.length > 0) {
+        html += `<div class="modif-list">✅ Modifications appliquées :<br>${
+          data.modifications.map(m=>`<div>• ${m}</div>`).join("")}</div>`;
+        await chargerPlanning();
+        afficherToast("Planning mis à jour !");
+      }
+      ajouterMessage("ai", html);
+    }
+  } catch(e) {
+    thinkEl.remove();
+    ajouterMessage("ai", "❌ Erreur de connexion. Le serveur Python est-il lancé ?");
+  }
+  document.getElementById("send-btn").disabled = false;
+}
+
+function ajouterMessage(role, html) {
+  const msgs = document.getElementById("messages");
+  const div = document.createElement("div");
+  div.className = `msg ${role}`;
+  div.innerHTML = `<div class="msg-who">${role==="ai"?"Assistant IA":"Vous"}</div>
+                   <div class="bubble">${html}</div>`;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function afficherThinking() {
+  const msgs = document.getElementById("messages");
+  const div = document.createElement("div");
+  div.className = "msg ai";
+  div.innerHTML = `<div class="msg-who">Assistant IA</div>
+    <div class="thinking"><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+    <span style="font-size:11px;color:var(--gray-m);margin-left:4px">Analyse en cours…</span></div>`;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+  return div;
+}
+
+// ── EXPORT ────────────────────────────────────────────────────────────
+async function exporterExcel() {
+  afficherToast("Génération du fichier Excel…");
+  const resp = await fetch("/api/export", {method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({titre:`Planning Infirmiers — Semaine du ${planningData?.semaine||""}`})
+  });
+  const blob = await resp.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = `planning_infirmiers.xlsx`;
+  a.click(); URL.revokeObjectURL(url);
+  afficherToast("Fichier Excel téléchargé ✅");
+}
+
+// ── RESET ─────────────────────────────────────────────────────────────
+async function resetPlanning() {
+  if (!confirm("Réinitialiser le planning aux données d'origine ?")) return;
+  await fetch("/api/reset", {method:"POST"});
+  await chargerPlanning();
+  historique = [];
+  afficherToast("Planning réinitialisé");
+}
+
+// ── TOAST ─────────────────────────────────────────────────────────────
+function afficherToast(msg) {
+  const t = document.getElementById("toast");
+  t.textContent = msg; t.classList.add("show");
+  setTimeout(() => t.classList.remove("show"), 2800);
+}
+</script>
+</body>
+</html>
