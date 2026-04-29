@@ -20,18 +20,20 @@ def get_current_week_data():
 current_semaine, current_jours = get_current_week_data()
 
 # ── Données initiales du planning ──────────────────────────────────────
+# Codes: M=Matin(8h-20h, pauses 10-11 et 17-18)  N=Nuit(20h-8h, pauses 23-00 et 4-5)
+# Durée effective: 12h - 2h de pause = 10h travaillées
 PLANNING_INITIAL = {
     "semaine": current_semaine,
     "jours": current_jours,
     "infirmiers": [
-        {"id": 1, "nom": "Sophie Martin",    "service": "Urgences",    "gardes": ["M","M","S","R","N","N","R"]},
-        {"id": 2, "nom": "Thomas Laurent",   "service": "Chirurgie",   "gardes": ["S","M","M","S","R","R","M"]},
-        {"id": 3, "nom": "Léa Rousseau",     "service": "Bloc",        "gardes": ["N","R","M","M","S","M","R"]},
-        {"id": 4, "nom": "Karim Benali",     "service": "Pédiatrie",   "gardes": ["R","S","S","M","M","R","N"]},
+        {"id": 1, "nom": "Sophie Martin",    "service": "Urgences",    "gardes": ["M","M","N","R","N","N","R"]},
+        {"id": 2, "nom": "Thomas Laurent",   "service": "Chirurgie",   "gardes": ["N","M","M","N","R","R","M"]},
+        {"id": 3, "nom": "Léa Rousseau",     "service": "Bloc",        "gardes": ["N","R","M","M","N","M","R"]},
+        {"id": 4, "nom": "Karim Benali",     "service": "Pédiatrie",   "gardes": ["R","N","N","M","M","R","N"]},
         {"id": 5, "nom": "Marie Chevalier",  "service": "Coordination","gardes": ["M","M","M","M","M","R","R"]},
-        {"id": 6, "nom": "Hugo Petit",       "service": "Urgences",    "gardes": ["N","N","R","S","S","M","M"]},
-        {"id": 7, "nom": "Amina Saidani",    "service": "Pédiatrie",   "gardes": ["M","R","N","N","R","S","S"]},
-        {"id": 8, "nom": "Paul Durand",      "service": "Chirurgie",   "gardes": ["S","S","M","R","N","N","R"]},
+        {"id": 6, "nom": "Hugo Petit",       "service": "Urgences",    "gardes": ["N","N","R","N","N","M","M"]},
+        {"id": 7, "nom": "Amina Saidani",    "service": "Pédiatrie",   "gardes": ["M","R","N","N","R","N","N"]},
+        {"id": 8, "nom": "Paul Durand",      "service": "Chirurgie",   "gardes": ["N","N","M","R","N","N","R"]},
     ]
 }
 
@@ -49,11 +51,14 @@ def planning_vers_texte():
         txt += f"- {inf['nom']} ({inf['service']}): {gardes}\n"
     return txt
 
+# Heures effectives par garde: 12h amplitude - 2h pauses = 10h travaillées
+HEURES_PAR_GARDE = {"M": 10, "N": 10, "R": 0, "C": 0}
+
 def calculer_stats(gardes):
-    heures = sum(8 for g in gardes if g in ["M","S","N"])
+    heures = sum(HEURES_PAR_GARDE.get(g, 0) for g in gardes)
     nuits  = gardes.count("N")
     alertes = []
-    if heures > 44: alertes.append("⚠ Heures sup")
+    if heures > 60: alertes.append("⚠ Heures sup")
     if nuits >= 3:  alertes.append("⚠ 3+ nuits")
     return heures, nuits, alertes
 
@@ -119,13 +124,22 @@ Tu peux lire et modifier le planning directement.
 
 {planning_txt}
 
-CODES: M=Matin(7h-15h) S=Soir(15h-23h) N=Nuit(23h-7h) R=Repos C=Congé
+HORAIRES (shifts de 12h avec 2h de pause, soit 10h effectives):
+- M = Matin  : 8h00 - 20h00 | Pauses : 10h-11h et 17h-18h
+- N = Nuit   : 20h00 - 8h00 | Pauses : 23h-00h et 4h-5h
+- R = Repos
+- C = Congé
+
+CALCUL DES HEURES:
+- Chaque garde (M ou N) = 10h effectives travaillées (12h amplitude - 2h pauses)
+- Maximum 60h effectives/semaine par infirmier (6 gardes)
 
 RÈGLES:
-- Minimum 11h de repos entre deux gardes
-- Maximum 48h/semaine par infirmier
+- Minimum 12h de repos entre deux gardes (shifts de 12h)
+- Maximum 60h/semaine par infirmier (6 gardes max sur 7 jours)
 - Pas plus de 3 nuits consécutives
-- Toujours au moins 1 infirmier la nuit
+- Toujours au moins 1 infirmier de nuit (code N)
+- Toujours au moins 1 infirmier de jour (code M)
 
 Quand l'utilisateur demande une modification, réponds avec:
 1. Une courte explication en français
@@ -207,7 +221,7 @@ def appliquer_action(act):
         inf = trouver(act.get("infirmier",""))
         idx = act.get("jour_index")
         garde = act.get("garde","").upper()
-        if inf and idx is not None and 0 <= idx <= 6 and garde in ["M","S","N","R","C"]:
+        if inf and idx is not None and 0 <= idx <= 6 and garde in ["M","N","R","C"]:
             ancien = inf["gardes"][idx]
             inf["gardes"][idx] = garde
             return f"{inf['nom']} : {planning_state['jours'][idx]} → {ancien} ➜ {garde}"
@@ -240,7 +254,7 @@ def export_excel():
     ws = wb.active
     ws.title = "Planning"
     ws.sheet_view.showGridLines = False
-    ws.freeze_panes = "C4"
+    ws.freeze_panes = "C5"
 
     def fill(h): return PatternFill("solid", fgColor=h)
     def fnt(h, bold=False, sz=11): return Font(name="Arial", color=h, bold=bold, size=sz)
@@ -260,7 +274,7 @@ def export_excel():
     WHT="FFFFFF";  BG="FAFAF8"
 
     # Fond général
-    for r in ws.iter_rows(1, 50, 1, 14):
+    for r in ws.iter_rows(1, 52, 1, 14):
         for c in r: c.fill = fill(BG)
 
     # Titre
@@ -270,33 +284,41 @@ def export_excel():
     ws["A1"].fill = fill(TEAL); ws["A1"].alignment = ctr()
     ws.row_dimensions[1].height = 30
 
+    # Sous-titre horaires
+    ws.merge_cells("A2:L2")
+    ws["A2"] = "Shifts 12h  |  Matin : 8h00-20h00 (pauses 10h-11h, 17h-18h)  |  Nuit : 20h00-8h00 (pauses 23h-00h, 4h-5h)  |  10h effectives/shift"
+    ws["A2"].font = Font(name="Arial", color=GRYM, bold=False, size=9)
+    ws["A2"].fill = fill(TEALL); ws["A2"].alignment = ctr()
+    ws.row_dimensions[2].height = 16
+
     # Légende
-    legendes = [("M","Matin",BLUL,BLU),("S","Soir",PURL,PUR),
-                ("N","Nuit",NGT,NGTL),("R","Repos",TEALL,TEAL),("C","Congé",AMBL,AMB)]
-    ws.merge_cells("A2:B2")
-    ws["A2"] = "LÉGENDE :"; ws["A2"].font = fnt(GRYM, True, 9); ws["A2"].fill = fill(BG)
+    legendes = [("M","Matin 8-20h",BLUL,BLU),("N","Nuit 20-8h",NGT,NGTL),
+                ("R","Repos",TEALL,TEAL),("C","Congé",AMBL,AMB)]
+    ws.merge_cells("A3:B3")
+    ws["A3"] = "LÉGENDE :"; ws["A3"].font = fnt(GRYM, True, 9); ws["A3"].fill = fill(BG)
     col = 3
     for code, label, bg, fg in legendes:
-        c = ws.cell(2, col, f"{code}={label}")
+        c = ws.cell(3, col, f"{code}={label}")
         c.fill = fill(bg); c.font = fnt(fg, True, 9); c.alignment = ctr()
-        ws.column_dimensions[get_column_letter(col)].width = 9
+        ws.column_dimensions[get_column_letter(col)].width = 11
         col += 1
-    ws.row_dimensions[2].height = 16
+    ws.row_dimensions[3].height = 16
 
     # Headers
     hdrs = ["#","Infirmier","Service"] + planning_state["jours"] + ["Total H","Nuits","Alertes"]
     wcol = [4, 20, 14, 9, 9, 9, 9, 9, 9, 9, 9, 7, 20]
     for i, (h, w) in enumerate(zip(hdrs, wcol), 1):
-        c = ws.cell(3, i, h)
+        c = ws.cell(4, i, h)
         c.fill = fill(TEALM); c.font = fnt(WHT, True, 10)
         c.alignment = ctr(); c.border = thin()
         ws.column_dimensions[get_column_letter(i)].width = w
-    ws.row_dimensions[3].height = 26
+    ws.row_dimensions[4].height = 26
 
-    sty = {"M":(BLUL,BLU),"S":(PURL,PUR),"N":(NGT,NGTL),"R":(TEALL,TEAL),"C":(AMBL,AMB)}
+    # Styles par code de garde (suppression du code S)
+    sty = {"M":(BLUL,BLU),"N":(NGT,NGTL),"R":(TEALL,TEAL),"C":(AMBL,AMB)}
 
     for idx, inf in enumerate(planning_state["infirmiers"]):
-        row = 4 + idx
+        row = 5 + idx
         ws.row_dimensions[row].height = 32
         rb = WHT if idx % 2 == 0 else "F7F6F2"
 
@@ -307,11 +329,13 @@ def export_excel():
         heures, nuits, alertes = calculer_stats(inf["gardes"])
         for d, g in enumerate(inf["gardes"]):
             bg, fg = sty.get(g, (rb, GRY))
-            c = ws.cell(row, 4+d, g)
+            # Afficher le label complet pour M et N
+            label = g
+            c = ws.cell(row, 4+d, label)
             c.fill = fill(bg); c.font = fnt(fg, True, 11); c.alignment = ctr(); c.border = thin()
 
-        hbg = REDL if heures > 44 else (TEALL if heures >= 35 else AMBL)
-        hfg = RED  if heures > 44 else (TEAL  if heures >= 35 else AMB)
+        hbg = REDL if heures > 60 else (TEALL if heures >= 40 else AMBL)
+        hfg = RED  if heures > 60 else (TEAL  if heures >= 40 else AMB)
         ws.cell(row,11,heures).fill=fill(hbg); ws.cell(row,11).font=fnt(hfg,True); ws.cell(row,11).alignment=ctr(); ws.cell(row,11).border=thin()
         nbg = AMBL if nuits >= 3 else "F7F6F2"; nfg = AMB if nuits >= 3 else GRYM
         ws.cell(row,12,nuits).fill=fill(nbg); ws.cell(row,12).font=fnt(nfg,True); ws.cell(row,12).alignment=ctr(); ws.cell(row,12).border=thin()
@@ -321,16 +345,29 @@ def export_excel():
         ws.cell(row,13,al_txt).fill=fill(abg); ws.cell(row,13).font=fnt(afg,sz=9); ws.cell(row,13).alignment=lft(); ws.cell(row,13).border=thin()
 
     # Ligne totaux
-    tr = 4 + len(planning_state["infirmiers"])
+    tr = 5 + len(planning_state["infirmiers"])
     ws.row_dimensions[tr].height = 22
     ws.merge_cells(f"A{tr}:C{tr}")
     ws[f"A{tr}"] = "TOTAL PAR JOUR"
     ws[f"A{tr}"].fill = fill(TEAL); ws[f"A{tr}"].font = fnt(WHT, True, 10); ws[f"A{tr}"].alignment = ctr()
     for d in range(7):
         gardes_jour = [inf["gardes"][d] for inf in planning_state["infirmiers"]]
-        m=gardes_jour.count("M"); s=gardes_jour.count("S"); n=gardes_jour.count("N")
-        c = ws.cell(tr, 4+d, f"M:{m} S:{s} N:{n}")
+        m = gardes_jour.count("M"); n = gardes_jour.count("N")
+        c = ws.cell(tr, 4+d, f"J:{m} N:{n}")
         c.fill=fill(TEALL); c.font=fnt(TEAL,sz=9); c.alignment=ctr(); c.border=thin()
+
+    # Ligne récap pauses
+    pr = tr + 1
+    ws.row_dimensions[pr].height = 18
+    ws.merge_cells(f"A{pr}:C{pr}")
+    ws[f"A{pr}"] = "Pauses (non comptées)"
+    ws[f"A{pr}"].fill = fill(AMBL); ws[f"A{pr}"].font = fnt(AMB, True, 9); ws[f"A{pr}"].alignment = ctr()
+    ws.merge_cells(f"D{pr}:G{pr}")
+    ws[f"D{pr}"] = "Jour : 10h-11h  |  17h-18h"
+    ws[f"D{pr}"].fill = fill(BLUL); ws[f"D{pr}"].font = fnt(BLU, False, 9); ws[f"D{pr}"].alignment = ctr()
+    ws.merge_cells(f"H{pr}:K{pr}")
+    ws[f"H{pr}"] = "Nuit : 23h-00h  |  4h-5h"
+    ws[f"H{pr}"].fill = fill(NGTL); ws[f"H{pr}"].font = fnt(NGT, False, 9); ws[f"H{pr}"].alignment = ctr()
 
     buf = io.BytesIO()
     wb.save(buf)
