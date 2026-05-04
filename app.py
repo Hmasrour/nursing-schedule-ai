@@ -4,8 +4,7 @@ import requests, json, io, os, datetime
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
-
-app = Flask(__name__)
+app = Flask(__name__) #todo the project with n8n and deploy it
 CORS(app)
 
 def get_current_week_data():
@@ -57,9 +56,18 @@ HEURES_PAR_GARDE = {"M": 10, "N": 10, "R": 0, "C": 0}
 def calculer_stats(gardes):
     heures = sum(HEURES_PAR_GARDE.get(g, 0) for g in gardes)
     nuits  = gardes.count("N")
+    max_nuits_consecutives = 0
+    streak = 0
+    for g in gardes:
+        if g == "N":
+            streak += 1
+            if streak > max_nuits_consecutives:
+                max_nuits_consecutives = streak
+        else:
+            streak = 0
     alertes = []
     if heures > 60: alertes.append("⚠ Heures sup")
-    if nuits >= 3:  alertes.append("⚠ 3+ nuits")
+    if max_nuits_consecutives >= 3:  alertes.append("⚠ 3+ nuits consécutives")
     return heures, nuits, alertes
 
 @app.route("/")
