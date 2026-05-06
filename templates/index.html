@@ -3,659 +3,1418 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Planning IA — Infirmiers</title>
+<title>NurseFlow — Plannings Intelligents</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
+/* ═══════════════════════════════════════════════
+   DESIGN SYSTEM — NurseFlow v2
+═══════════════════════════════════════════════ */
 :root {
-  --teal:       #0F6E56;
-  --teal-m:     #1D9E75;
-  --teal-l:     #E1F5EE;
-  --purple:     #534AB7;
-  --purple-l:   #EEEDFE;
-  --amber:      #854F0B;
-  --amber-l:    #FAEEDA;
-  --blue:       #185FA5;
-  --blue-l:     #E6F1FB;
-  --night:      #2C2C2A;
-  --night-l:    #D3D1C7;
-  --red:        #A32D2D;
-  --red-l:      #FCEBEB;
-  --gray:       #444441;
-  --gray-m:     #888780;
-  --gray-l:     #F1EFE8;
-  --border:     #D3D1C7;
-  --bg:         #FAFAF8;
-  --white:      #FFFFFF;
-}
-* { box-sizing:border-box; margin:0; padding:0; }
-body { font-family:'Segoe UI',Arial,sans-serif; background:#F0EDE6; color:var(--gray); min-height:100vh; }
+  --navy-900: #0A1628;
+  --navy-800: #0F1F3D;
+  --navy-700: #152C54;
+  --navy-600: #1E3A5F;
+  --navy-400: #2D5B8E;
+  --navy-200: #C8DDF5;
+  --navy-100: #EEF5FF;
+  --navy-50:  #F5F9FF;
 
-/* ── TOP BAR ── */
+  --blue-600: #1D6FE8;
+  --blue-400: #5A9CF5;
+  --blue-100: #DBEAFE;
+  --blue-50:  #EFF6FF;
+
+  --teal-600: #0891B2;
+  --teal-100: #CFFAFE;
+
+  --emerald-700: #047857;
+  --emerald-100: #D1FAE5;
+  --emerald-50:  #ECFDF5;
+
+  --amber-700: #B45309;
+  --amber-100: #FEF3C7;
+  --amber-50:  #FFFBEB;
+
+  --rose-700:  #BE123C;
+  --rose-600:  #E11D48;
+  --rose-100:  #FFE4E6;
+  --rose-50:   #FFF1F2;
+
+  --slate-900: #0F172A;
+  --slate-800: #1E293B;
+  --slate-700: #334155;
+  --slate-600: #475569;
+  --slate-500: #64748B;
+  --slate-400: #94A3B8;
+  --slate-300: #CBD5E1;
+  --slate-200: #E2E8F0;
+  --slate-100: #F1F5F9;
+  --slate-50:  #F8FAFC;
+
+  --purple-700: #6D28D9;
+  --purple-100: #EDE9FE;
+
+  --night-bg:  #0F1729;
+  --night-fg:  #B8D0F0;
+
+  --radius-sm:  6px;
+  --radius-md:  10px;
+  --radius-lg:  14px;
+  --radius-xl:  20px;
+  --radius-full: 9999px;
+
+  --shadow-sm:  0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.06);
+  --shadow-md:  0 4px 12px rgba(0,0,0,.08), 0 2px 6px rgba(0,0,0,.06);
+  --shadow-lg:  0 10px 30px rgba(0,0,0,.10), 0 4px 12px rgba(0,0,0,.08);
+  --shadow-xl:  0 20px 50px rgba(0,0,0,.14);
+  --shadow-glow: 0 0 0 3px rgba(29,111,232,.25);
+
+  --font-sans: 'DM Sans', system-ui, sans-serif;
+  --font-mono: 'DM Mono', monospace;
+
+  --topbar-h: 58px;
+  --chat-w: 370px;
+  --transition: all .18s cubic-bezier(.4,0,.2,1);
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+body {
+  font-family: var(--font-sans);
+  background: var(--slate-100);
+  color: var(--slate-800);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── SCROLLBARS ── */
+::-webkit-scrollbar        { width: 5px; height: 5px; }
+::-webkit-scrollbar-track  { background: transparent; }
+::-webkit-scrollbar-thumb  { background: var(--slate-300); border-radius: 999px; }
+::-webkit-scrollbar-thumb:hover { background: var(--slate-400); }
+
+/* ══════════════════════════════════════════════
+   TOP BAR
+══════════════════════════════════════════════ */
 .topbar {
-  background:var(--teal);
-  padding:0 24px;
-  height:56px;
-  display:flex;
-  align-items:center;
-  gap:12px;
-  position:sticky; top:0; z-index:100;
-  box-shadow:0 2px 8px rgba(0,0,0,.15);
+  position: sticky; top: 0; z-index: 120;
+  height: var(--topbar-h);
+  background: var(--navy-900);
+  border-bottom: 1px solid rgba(255,255,255,.06);
+  display: flex; align-items: center; gap: 16px;
+  padding: 0 20px;
+  box-shadow: 0 2px 20px rgba(0,0,0,.3);
 }
-.topbar-logo { font-size:22px; }
-.topbar-title { color:#fff; font-size:16px; font-weight:600; }
-.topbar-sub { color:rgba(255,255,255,.65); font-size:12px; margin-left:4px; }
-.topbar-actions { margin-left:auto; display:flex; gap:8px; align-items:center; }
-.btn { padding:7px 14px; border-radius:8px; font-size:13px; font-weight:500;
-       cursor:pointer; border:none; transition:all .15s; }
-.btn-white { background:#fff; color:var(--teal); }
-.btn-white:hover { background:var(--teal-l); }
-.btn-outline { background:transparent; color:#fff; border:1px solid rgba(255,255,255,.4); }
-.btn-outline:hover { background:rgba(255,255,255,.1); }
-.btn-teal { background:var(--teal-m); color:#fff; }
-.btn-teal:hover { background:var(--teal); }
-.status-dot { width:8px; height:8px; border-radius:50%; background:#4ade80;
-              animation:pulse 2s ease-in-out infinite; }
-@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
 
-/* ── LAYOUT ── */
-.layout { display:flex; height:calc(100vh - 56px); }
+.topbar-brand {
+  display: flex; align-items: center; gap: 10px;
+  text-decoration: none;
+}
+.topbar-icon {
+  width: 34px; height: 34px; border-radius: var(--radius-md);
+  background: linear-gradient(135deg, var(--blue-600), var(--navy-400));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 17px; flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(29,111,232,.4);
+}
+.topbar-name {
+  font-size: 15px; font-weight: 700;
+  color: #fff; letter-spacing: -.02em;
+  line-height: 1;
+}
+.topbar-tagline {
+  font-size: 10.5px; color: rgba(255,255,255,.45);
+  letter-spacing: .03em; text-transform: uppercase;
+  line-height: 1; margin-top: 2px;
+}
 
-/* ── PANNEAU CHAT ── */
+.topbar-divider {
+  width: 1px; height: 24px;
+  background: rgba(255,255,255,.12);
+}
+
+.topbar-week {
+  display: flex; align-items: center; gap: 8px;
+}
+.week-nav-btn {
+  width: 28px; height: 28px; border-radius: var(--radius-sm);
+  background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.1);
+  color: rgba(255,255,255,.7); font-size: 13px;
+  cursor: pointer; transition: var(--transition);
+  display: flex; align-items: center; justify-content: center;
+}
+.week-nav-btn:hover { background: rgba(255,255,255,.15); color: #fff; }
+#topbar-week-label {
+  font-size: 12px; font-weight: 600; color: rgba(255,255,255,.85);
+  white-space: nowrap;
+}
+.today-btn {
+  padding: 4px 10px; border-radius: var(--radius-sm);
+  background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.15);
+  color: rgba(255,255,255,.7); font-size: 11px; font-weight: 500;
+  cursor: pointer; transition: var(--transition);
+}
+.today-btn:hover { background: rgba(255,255,255,.18); color: #fff; }
+
+.topbar-actions {
+  margin-left: auto;
+  display: flex; align-items: center; gap: 8px;
+}
+
+.status-pill {
+  display: flex; align-items: center; gap: 6px;
+  padding: 4px 10px;
+  background: rgba(34,197,94,.12);
+  border: 1px solid rgba(34,197,94,.25);
+  border-radius: var(--radius-full);
+}
+.status-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: #22C55E;
+  animation: pulse-dot 2.4s ease-in-out infinite;
+}
+@keyframes pulse-dot {
+  0%,100%{ opacity:1; transform:scale(1); }
+  50%{ opacity:.5; transform:scale(.8); }
+}
+.status-text { font-size: 10.5px; font-weight: 600; color: #4ADE80; }
+
+.btn-topbar {
+  height: 32px; padding: 0 14px;
+  border-radius: var(--radius-sm);
+  font-size: 12px; font-weight: 600;
+  cursor: pointer; transition: var(--transition);
+  display: flex; align-items: center; gap: 6px;
+  border: none; white-space: nowrap;
+}
+.btn-ghost { background: rgba(255,255,255,.08); color: rgba(255,255,255,.75); border: 1px solid rgba(255,255,255,.12); }
+.btn-ghost:hover { background: rgba(255,255,255,.14); color: #fff; }
+.btn-primary { background: var(--blue-600); color: #fff; }
+.btn-primary:hover { background: #1558D0; box-shadow: 0 2px 8px rgba(29,111,232,.45); }
+.btn-danger-ghost { background: rgba(225,29,72,.1); color: #FDA4AF; border: 1px solid rgba(225,29,72,.2); }
+.btn-danger-ghost:hover { background: rgba(225,29,72,.18); color: #FECDD3; }
+
+/* ══════════════════════════════════════════════
+   LAYOUT
+══════════════════════════════════════════════ */
+.layout {
+  display: flex;
+  height: calc(100vh - var(--topbar-h));
+}
+
+/* ══════════════════════════════════════════════
+   CHAT PANEL
+══════════════════════════════════════════════ */
 .chat-panel {
-  width:360px; flex-shrink:0;
-  background:var(--white);
-  border-right:1px solid var(--border);
-  display:flex; flex-direction:column;
+  width: var(--chat-w);
+  flex-shrink: 0;
+  background: var(--slate-50);
+  border-right: 1px solid var(--slate-200);
+  display: flex; flex-direction: column;
+  overflow: hidden;
 }
+
 .chat-header {
-  padding:14px 16px;
-  border-bottom:1px solid var(--border);
-  background:var(--bg);
+  padding: 14px 16px 12px;
+  background: white;
+  border-bottom: 1px solid var(--slate-200);
 }
-.chat-header-title { font-size:13px; font-weight:600; color:var(--gray); display:flex; align-items:center; gap:6px; }
-.chat-header-sub { font-size:11px; color:var(--gray-m); margin-top:3px; }
+.chat-header-row { display: flex; align-items: center; gap: 8px; }
+.chat-ai-badge {
+  display: flex; align-items: center; gap: 5px;
+  padding: 3px 8px;
+  background: linear-gradient(135deg, #EEF5FF, #E8F0FE);
+  border: 1px solid var(--navy-200);
+  border-radius: var(--radius-full);
+  font-size: 10px; font-weight: 700;
+  color: var(--navy-600); letter-spacing: .04em; text-transform: uppercase;
+}
+.chat-ai-badge::before {
+  content: '';
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--blue-600);
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+.chat-title { font-size: 13px; font-weight: 700; color: var(--slate-800); }
+.chat-sub   { font-size: 11px; color: var(--slate-500); margin-top: 2px; }
 
+/* API Key Bar */
 .api-bar {
-  padding:10px 14px;
-  border-bottom:1px solid var(--border);
-  background:var(--amber-l);
-  display:flex; gap:8px; align-items:center;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--slate-200);
+  background: var(--amber-50);
+  display: flex; gap: 8px; align-items: center;
+  transition: var(--transition);
 }
-.api-bar.ok { background:var(--teal-l); }
+.api-bar.ok {
+  background: var(--emerald-50);
+  border-bottom-color: var(--emerald-100);
+}
+.api-bar-icon { font-size: 14px; flex-shrink: 0; }
 .api-bar input {
-  flex:1; padding:6px 10px; border:1px solid var(--border);
-  border-radius:6px; font-size:12px;
+  flex: 1; padding: 5px 9px;
+  border: 1px solid var(--slate-200); border-radius: var(--radius-sm);
+  font-size: 11.5px; font-family: var(--font-mono);
+  background: white; outline: none;
+  transition: border-color .15s;
+  color: var(--slate-700);
 }
-.api-bar button {
-  padding:6px 12px; border:none; border-radius:6px;
-  background:var(--amber); color:#fff; font-size:12px;
-  font-weight:600; cursor:pointer; white-space:nowrap;
+.api-bar input:focus { border-color: var(--blue-600); box-shadow: var(--shadow-glow); }
+.api-save-btn {
+  padding: 5px 12px;
+  border: none; border-radius: var(--radius-sm);
+  background: var(--amber-700); color: white;
+  font-size: 11px; font-weight: 700;
+  cursor: pointer; transition: var(--transition);
+  white-space: nowrap;
 }
-.api-bar.ok button { background:var(--teal); }
+.api-bar.ok .api-save-btn { background: var(--emerald-700); }
+.api-save-btn:hover { opacity: .88; }
 
-.chips-bar { padding:8px 12px; border-bottom:1px solid var(--border); display:flex; flex-wrap:wrap; gap:5px; }
+/* Chips bar */
+.chips-bar {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--slate-200);
+  display: flex; flex-wrap: wrap; gap: 5px;
+  background: white;
+}
 .chip {
-  font-size:11px; padding:4px 10px; border-radius:999px;
-  border:1px solid var(--border); background:var(--white);
-  color:var(--gray-m); cursor:pointer; transition:all .15s;
+  padding: 3px 10px;
+  border: 1px solid var(--slate-200);
+  border-radius: var(--radius-full);
+  font-size: 10.5px; font-weight: 500;
+  color: var(--slate-500); cursor: pointer;
+  background: var(--slate-50);
+  transition: var(--transition);
+  white-space: nowrap;
 }
-.chip:hover { background:var(--teal-l); border-color:var(--teal-m); color:var(--teal); }
+.chip:hover {
+  background: var(--navy-100); border-color: var(--navy-200);
+  color: var(--navy-600);
+}
 
-.messages { flex:1; overflow-y:auto; padding:12px; display:flex; flex-direction:column; gap:10px; background:var(--bg); }
-.msg { display:flex; flex-direction:column; max-width:94%; }
-.msg.user { align-self:flex-end; align-items:flex-end; }
-.msg.ai   { align-self:flex-start; align-items:flex-start; }
-.msg-who  { font-size:10px; color:var(--gray-m); margin-bottom:3px; }
-.bubble {
-  border-radius:12px; padding:9px 13px;
-  font-size:12.5px; line-height:1.6;
+/* Messages */
+.messages {
+  flex: 1; overflow-y: auto;
+  padding: 14px; display: flex; flex-direction: column; gap: 12px;
+  background: var(--slate-50);
 }
-.msg.user .bubble { background:var(--teal); color:#fff; border-bottom-right-radius:3px; }
-.msg.ai   .bubble { background:var(--white); border:1px solid var(--border); border-bottom-left-radius:3px; }
-.bubble b { color:var(--teal); }
-.bubble ul { padding-left:16px; margin-top:4px; }
-.bubble li { margin-bottom:2px; }
+
+.msg { display: flex; flex-direction: column; max-width: 96%; }
+.msg.user { align-self: flex-end; align-items: flex-end; }
+.msg.ai   { align-self: flex-start; align-items: flex-start; }
+.msg-meta { font-size: 9.5px; color: var(--slate-400); margin-bottom: 4px;
+            font-weight: 600; letter-spacing: .04em; text-transform: uppercase; }
+
+.bubble {
+  border-radius: var(--radius-lg);
+  padding: 10px 14px;
+  font-size: 12.5px; line-height: 1.65;
+  max-width: 100%;
+}
+.msg.user .bubble {
+  background: linear-gradient(135deg, var(--navy-700), var(--navy-600));
+  color: #fff; border-bottom-right-radius: 3px;
+  box-shadow: var(--shadow-md);
+}
+.msg.ai .bubble {
+  background: white;
+  border: 1px solid var(--slate-200);
+  color: var(--slate-700);
+  border-bottom-left-radius: 3px;
+  box-shadow: var(--shadow-sm);
+}
+.bubble strong, .bubble b { color: var(--navy-600); font-weight: 700; }
+.bubble ul  { padding-left: 16px; margin-top: 5px; }
+.bubble li  { margin-bottom: 3px; }
 
 .modif-list {
-  margin-top:8px; padding:8px 10px;
-  background:var(--teal-l); border-radius:8px;
-  border-left:3px solid var(--teal-m);
-  font-size:11px; color:var(--teal);
+  margin-top: 10px; padding: 10px 12px;
+  background: linear-gradient(135deg, #F0FDF4, #ECFDF5);
+  border-radius: var(--radius-md);
+  border-left: 3px solid var(--emerald-700);
+  font-size: 11px;
 }
-.modif-list div { padding:2px 0; }
+.modif-list-header {
+  font-weight: 700; color: var(--emerald-700);
+  margin-bottom: 5px; display: flex; align-items: center; gap: 5px;
+}
+.modif-item {
+  color: var(--slate-700); padding: 2px 0;
+  display: flex; align-items: center; gap: 5px;
+}
+.modif-item::before { content: '→'; color: var(--emerald-700); font-weight: 700; }
 
-.thinking { display:flex; gap:4px; align-items:center; padding:10px 14px;
-            background:var(--white); border:1px solid var(--border); border-radius:12px; }
-.dot { width:7px; height:7px; border-radius:50%; background:var(--teal-m);
-       animation:dp 1.4s ease-in-out infinite; }
-.dot:nth-child(2){animation-delay:.2s} .dot:nth-child(3){animation-delay:.4s}
-@keyframes dp { 0%,80%,100%{transform:scale(.6);opacity:.4} 40%{transform:scale(1);opacity:1} }
+/* Thinking animation */
+.thinking-bubble {
+  background: white; border: 1px solid var(--slate-200);
+  border-radius: var(--radius-lg); border-bottom-left-radius: 3px;
+  padding: 10px 16px;
+  display: flex; align-items: center; gap: 8px;
+}
+.thinking-dots { display: flex; gap: 4px; }
+.dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--navy-400);
+  animation: bounce-dot 1.4s ease-in-out infinite;
+}
+.dot:nth-child(2) { animation-delay: .16s; }
+.dot:nth-child(3) { animation-delay: .32s; }
+@keyframes bounce-dot {
+  0%,80%,100%{ transform:scale(.5); opacity:.4; }
+  40%{ transform:scale(1); opacity:1; }
+}
+.thinking-label { font-size: 11px; color: var(--slate-400); font-style: italic; }
 
-.input-row {
-  padding:10px 12px; border-top:1px solid var(--border);
-  background:var(--white); display:flex; gap:8px;
+/* Input area */
+.input-area {
+  padding: 10px 12px;
+  border-top: 1px solid var(--slate-200);
+  background: white;
+  display: flex; gap: 8px; align-items: flex-end;
 }
-.input-row textarea {
-  flex:1; border:1px solid var(--border); border-radius:10px;
-  padding:8px 12px; font-size:12.5px; font-family:inherit;
-  resize:none; outline:none; background:var(--bg);
-  transition:border-color .15s; max-height:90px; line-height:1.4;
+.input-area textarea {
+  flex: 1; border: 1.5px solid var(--slate-200);
+  border-radius: var(--radius-md);
+  padding: 8px 12px;
+  font-size: 12.5px; font-family: var(--font-sans);
+  resize: none; outline: none; background: var(--slate-50);
+  transition: border-color .15s, box-shadow .15s;
+  max-height: 100px; min-height: 36px;
+  line-height: 1.45; color: var(--slate-800);
 }
-.input-row textarea:focus { border-color:var(--teal-m); }
+.input-area textarea:focus {
+  border-color: var(--blue-600);
+  box-shadow: var(--shadow-glow);
+  background: white;
+}
+.input-area textarea::placeholder { color: var(--slate-400); }
 .send-btn {
-  width:38px; height:38px; border-radius:50%; background:var(--teal);
-  border:none; color:#fff; font-size:17px; cursor:pointer;
-  display:flex; align-items:center; justify-content:center;
-  align-self:flex-end; flex-shrink:0; transition:background .15s;
+  width: 36px; height: 36px; border-radius: var(--radius-md);
+  background: linear-gradient(135deg, var(--blue-600), var(--navy-400));
+  border: none; color: #fff;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; transition: var(--transition);
+  box-shadow: 0 2px 8px rgba(29,111,232,.35);
 }
-.send-btn:hover { background:var(--teal-m); }
-.send-btn:disabled { background:var(--border); cursor:not-allowed; }
+.send-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 14px rgba(29,111,232,.45); }
+.send-btn:disabled { background: var(--slate-300); box-shadow: none; cursor: not-allowed; transform: none; }
+.send-icon { width: 16px; height: 16px; fill: white; }
 
-/* ── MAIN CONTENT ── */
-.main { flex:1; overflow-y:auto; padding:20px 24px; }
+/* ══════════════════════════════════════════════
+   MAIN AREA
+══════════════════════════════════════════════ */
+.main { flex: 1; overflow-y: auto; padding: 20px 22px; }
 
-/* ── STATS ── */
-.stats { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:20px; }
-.stat-card { background:var(--white); border-radius:12px; padding:14px 16px;
-             border:1px solid var(--border); }
-.stat-label { font-size:11px; color:var(--gray-m); margin-bottom:4px; text-transform:uppercase; letter-spacing:.04em; }
-.stat-value { font-size:24px; font-weight:600; color:var(--gray); }
-.stat-sub   { font-size:11px; color:var(--gray-m); margin-top:2px; }
+/* ── KPI CARDS ── */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 12px;
+  margin-bottom: 18px;
+}
+.kpi-card {
+  background: white;
+  border: 1px solid var(--slate-200);
+  border-radius: var(--radius-lg);
+  padding: 14px 16px;
+  position: relative; overflow: hidden;
+  transition: var(--transition);
+}
+.kpi-card:hover { box-shadow: var(--shadow-md); transform: translateY(-1px); }
+.kpi-card::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  background: var(--kpi-accent, var(--navy-400));
+}
+.kpi-label {
+  font-size: 10px; font-weight: 700; letter-spacing: .06em;
+  text-transform: uppercase; color: var(--slate-500);
+  margin-bottom: 6px;
+}
+.kpi-value {
+  font-size: 26px; font-weight: 700;
+  color: var(--slate-900); line-height: 1;
+  letter-spacing: -.02em;
+}
+.kpi-sub {
+  font-size: 10.5px; color: var(--slate-400); margin-top: 4px;
+}
+.kpi-icon {
+  position: absolute; bottom: 10px; right: 12px;
+  font-size: 22px; opacity: .15;
+}
 
-/* ── TABLE ── */
-.table-card { background:var(--white); border-radius:14px; border:1px solid var(--border); overflow:hidden; margin-bottom:20px; }
-.table-header { padding:14px 18px; border-bottom:1px solid var(--border);
-                display:flex; align-items:center; justify-content:space-between; }
-.table-title { font-size:14px; font-weight:600; color:var(--gray); }
-.table-actions { display:flex; gap:8px; }
-.btn-sm { padding:6px 12px; font-size:12px; border-radius:7px; cursor:pointer;
-          border:1px solid var(--border); background:var(--white); color:var(--gray-m);
-          transition:all .15s; }
-.btn-sm:hover { background:var(--teal-l); border-color:var(--teal-m); color:var(--teal); }
-.btn-sm.primary { background:var(--teal); color:#fff; border-color:var(--teal); }
-.btn-sm.primary:hover { background:var(--teal-m); }
+/* ── PLANNING TABLE CARD ── */
+.table-card {
+  background: white;
+  border: 1px solid var(--slate-200);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 18px;
+}
+.table-toolbar {
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--slate-100);
+  display: flex; align-items: center; justify-content: space-between;
+  background: var(--slate-50);
+}
+.table-toolbar-left { display: flex; align-items: center; gap: 10px; }
+.table-toolbar-title {
+  font-size: 14px; font-weight: 700; color: var(--slate-900);
+}
+.table-toolbar-badge {
+  padding: 2px 8px; border-radius: var(--radius-full);
+  background: var(--navy-100); color: var(--navy-600);
+  font-size: 10px; font-weight: 700;
+}
+.table-toolbar-right { display: flex; align-items: center; gap: 8px; }
 
-table { width:100%; border-collapse:collapse; }
+.btn-sm {
+  height: 30px; padding: 0 12px;
+  border-radius: var(--radius-sm);
+  font-size: 11.5px; font-weight: 600;
+  cursor: pointer; transition: var(--transition);
+  display: flex; align-items: center; gap: 5px;
+  border: 1px solid var(--slate-200);
+  background: white; color: var(--slate-600);
+}
+.btn-sm:hover {
+  background: var(--navy-100); border-color: var(--navy-200);
+  color: var(--navy-600);
+}
+.btn-sm.accent {
+  background: var(--navy-900); color: white; border-color: var(--navy-900);
+}
+.btn-sm.accent:hover { background: var(--navy-700); }
+.btn-sm.green {
+  background: var(--emerald-50); color: var(--emerald-700); border-color: var(--emerald-100);
+}
+.btn-sm.green:hover { background: var(--emerald-100); }
+
+/* Table */
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; min-width: 800px; }
+
 th {
-  padding:10px 10px; font-size:11px; font-weight:600; text-transform:uppercase;
-  letter-spacing:.05em; color:var(--white); background:var(--teal-m);
-  text-align:center; white-space:nowrap;
+  padding: 10px 8px; font-size: 10.5px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .06em;
+  color: rgba(255,255,255,.9);
+  background: var(--navy-800);
+  text-align: center; white-space: nowrap; border: none;
 }
-th:first-child { text-align:left; padding-left:16px; }
-th:nth-child(2) { text-align:left; }
-td { padding:0; border-bottom:1px solid var(--border); }
-tr:last-child td { border-bottom:none; }
-tr:hover td { background:rgba(29,158,117,.03); }
+th:first-child  { width: 40px; }
+th.th-agent     { text-align: left; padding-left: 16px; min-width: 180px; }
+th.th-service   { min-width: 120px; }
+th.th-day       { min-width: 62px; }
+th.th-stat      { min-width: 64px; }
 
-.td-num { padding:10px 10px; text-align:center; font-size:12px; color:var(--gray-m); }
-.td-name { padding:10px 16px; }
-.td-name .name { font-size:13px; font-weight:600; color:var(--gray); }
-.td-name .service { font-size:11px; color:var(--gray-m); margin-top:1px; }
-.td-garde { padding:6px 4px; text-align:center; }
+td { border-bottom: 1px solid var(--slate-100); }
+tr:last-child td { border-bottom: none; }
+tr.data-row:hover td { background: var(--slate-50) !important; }
 
-.garde {
-  display:inline-flex; align-items:center; justify-content:center;
-  width:36px; height:28px; border-radius:6px;
-  font-size:12px; font-weight:700; cursor:pointer;
-  transition:transform .1s, opacity .15s;
-  user-select:none;
+.td-num { padding: 0 8px; text-align: center; width: 40px; }
+.td-num span {
+  display: inline-block; width: 20px; height: 20px;
+  border-radius: 50%; background: var(--slate-100);
+  font-size: 10px; font-weight: 700; color: var(--slate-500);
+  display: flex; align-items: center; justify-content: center;
 }
-.garde:hover { transform:scale(1.1); opacity:.85; }
-.garde-M { background:var(--blue-l); color:var(--blue); }
-.garde-S { background:var(--purple-l); color:var(--purple); }
-.garde-N { background:var(--night); color:var(--night-l); }
-.garde-R { background:var(--teal-l); color:var(--teal); }
-.garde-C { background:var(--amber-l); color:var(--amber); }
-.garde-? { background:var(--red-l); color:var(--red); }
-
-.td-heures { padding:8px 10px; text-align:center; }
-.heures-badge { display:inline-block; padding:3px 10px; border-radius:999px; font-size:12px; font-weight:600; }
-.h-ok  { background:var(--teal-l); color:var(--teal); }
-.h-warn{ background:var(--amber-l); color:var(--amber); }
-.h-bad { background:var(--red-l); color:var(--red); }
-
-.td-alertes { padding:8px 12px; font-size:11px; }
-.alerte { color:var(--red); font-weight:500; }
-
-/* ── LÉGENDE ── */
-.legend { display:flex; gap:14px; flex-wrap:wrap; padding:12px 18px;
-          border-top:1px solid var(--border); background:var(--bg); }
-.leg-item { display:flex; align-items:center; gap:5px; font-size:11px; color:var(--gray-m); }
-.leg-dot { width:12px; height:12px; border-radius:3px; }
-
-/* ── TOTAL ROW ── */
-.total-row td { background:var(--teal-l); font-size:11px; color:var(--teal); font-weight:600; padding:8px 10px; text-align:center; }
-.total-row td:first-child { text-align:left; padding-left:16px; }
-
-/* Scrollbars */
-.messages::-webkit-scrollbar { width:4px; }
-.messages::-webkit-scrollbar-thumb { background:var(--border); border-radius:4px; }
-
-/* Toast */
-.toast {
-  position:fixed; bottom:24px; right:24px;
-  background:var(--teal); color:#fff;
-  padding:10px 18px; border-radius:10px;
-  font-size:13px; font-weight:500;
-  box-shadow:0 4px 16px rgba(0,0,0,.15);
-  transform:translateY(80px); opacity:0;
-  transition:all .3s ease;
-  z-index:999;
+.td-agent { padding: 10px 8px 10px 16px; }
+.td-agent-inner { display: flex; align-items: center; gap: 10px; }
+.agent-avatar {
+  width: 30px; height: 30px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 800; color: white; flex-shrink: 0;
+  box-shadow: 0 1px 4px rgba(0,0,0,.15);
 }
-.toast.show { transform:translateY(0); opacity:1; }
-
-/* Modal pour clic cellule */
-.modal-bg {
-  display:none; position:fixed; inset:0;
-  background:rgba(0,0,0,.3); z-index:200;
-  align-items:center; justify-content:center;
+.agent-info { flex: 1; min-width: 0; }
+.agent-name { font-size: 12.5px; font-weight: 700; color: var(--slate-800); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.agent-service { font-size: 10.5px; color: var(--slate-500); }
+.agent-actions { display: flex; gap: 3px; opacity: 0; transition: opacity .15s; }
+tr:hover .agent-actions { opacity: 1; }
+.icon-btn {
+  width: 22px; height: 22px; border-radius: var(--radius-sm);
+  background: var(--slate-100); border: none;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  font-size: 11px; transition: var(--transition);
 }
-.modal-bg.open { display:flex; }
+.icon-btn:hover { background: var(--slate-200); }
+.icon-btn.danger:hover { background: var(--rose-100); }
+
+.td-garde { padding: 8px 5px; text-align: center; }
+.garde-pill {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 34px; height: 26px; border-radius: var(--radius-sm);
+  font-size: 12px; font-weight: 800;
+  cursor: pointer; transition: var(--transition);
+  user-select: none; font-family: var(--font-mono);
+  letter-spacing: -.01em;
+}
+.garde-pill:hover { transform: scale(1.12); box-shadow: var(--shadow-md); }
+.gp-M { background: var(--blue-100);   color: var(--blue-600); }
+.gp-N { background: var(--night-bg);   color: var(--night-fg); }
+.gp-S { background: var(--purple-100); color: var(--purple-700); }
+.gp-R { background: var(--slate-100);  color: var(--slate-500); }
+.gp-C { background: var(--amber-100);  color: var(--amber-700); }
+
+.td-stat  { padding: 8px; text-align: center; }
+.hours-badge {
+  display: inline-block; padding: 2px 9px;
+  border-radius: var(--radius-full);
+  font-size: 11.5px; font-weight: 700;
+  font-family: var(--font-mono);
+}
+.hb-ok   { background: var(--emerald-100); color: var(--emerald-700); }
+.hb-warn { background: var(--amber-100);   color: var(--amber-700); }
+.hb-bad  { background: var(--rose-100);    color: var(--rose-700); }
+
+.td-alerts { padding: 8px 12px; max-width: 200px; }
+.alert-tag {
+  display: inline-block; padding: 1px 7px;
+  border-radius: var(--radius-full);
+  font-size: 9.5px; font-weight: 600;
+  background: var(--rose-50); color: var(--rose-700);
+  border: 1px solid var(--rose-100);
+  margin: 1px 2px 1px 0; white-space: nowrap;
+}
+.alert-tag.warn {
+  background: var(--amber-50); color: var(--amber-700); border-color: var(--amber-100);
+}
+
+/* Coverage footer row */
+.cov-row td {
+  background: var(--navy-900) !important;
+  padding: 8px 5px; text-align: center;
+  border-top: 2px solid var(--navy-700);
+}
+.cov-row td:first-child, .cov-row td:nth-child(2) {
+  text-align: left; padding-left: 16px;
+}
+.cov-label {
+  font-size: 9px; font-weight: 800; letter-spacing: .08em;
+  text-transform: uppercase; color: rgba(255,255,255,.5);
+}
+.cov-pill {
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: 2px 8px; border-radius: var(--radius-full);
+  font-size: 9.5px; font-weight: 700; font-family: var(--font-mono);
+}
+.cov-ok   { background: rgba(20,83,45,.8); color: #86EFAC; }
+.cov-bad  { background: rgba(159,18,57,.8); color: #FECDD3; }
+
+/* Legend strip */
+.legend-strip {
+  padding: 10px 18px; border-top: 1px solid var(--slate-100);
+  display: flex; align-items: center; gap: 18px; flex-wrap: wrap;
+  background: var(--slate-50);
+}
+.leg-item { display: flex; align-items: center; gap: 5px; font-size: 10.5px; color: var(--slate-500); }
+.leg-chip {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 22px; height: 18px; border-radius: 4px;
+  font-size: 9px; font-weight: 800; font-family: var(--font-mono);
+}
+.leg-hint {
+  margin-left: auto; font-size: 10.5px; color: var(--slate-400);
+  display: flex; align-items: center; gap: 4px;
+}
+
+/* ══════════════════════════════════════════════
+   MODALS
+══════════════════════════════════════════════ */
+.modal-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(9,18,38,.55);
+  backdrop-filter: blur(4px);
+  z-index: 300; align-items: center; justify-content: center;
+  animation: fadeIn .18s ease;
+}
+.modal-overlay.open { display: flex; }
+@keyframes fadeIn { from{opacity:0} to{opacity:1} }
+
 .modal {
-  background:var(--white); border-radius:14px;
-  padding:20px 24px; min-width:260px;
-  box-shadow:0 8px 32px rgba(0,0,0,.2);
+  background: white; border-radius: var(--radius-xl);
+  padding: 24px 26px;
+  box-shadow: var(--shadow-xl);
+  animation: slideUp .2s cubic-bezier(.34,1.56,.64,1);
+  max-width: 95vw;
 }
-.modal-title { font-size:14px; font-weight:600; margin-bottom:14px; }
-.garde-options { display:flex; gap:8px; flex-wrap:wrap; }
-.garde-opt {
-  width:50px; height:40px; border-radius:8px;
-  display:flex; align-items:center; justify-content:center;
-  font-size:14px; font-weight:700; cursor:pointer;
-  transition:transform .1s;
+@keyframes slideUp { from{transform:translateY(20px);opacity:0} to{transform:translateY(0);opacity:1} }
+
+.modal-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 18px;
 }
-.garde-opt:hover { transform:scale(1.08); }
-.modal-cancel { margin-top:14px; width:100%; padding:8px; border:1px solid var(--border);
-                background:none; border-radius:8px; cursor:pointer; font-size:13px; color:var(--gray-m); }
+.modal-title { font-size: 15px; font-weight: 700; color: var(--slate-900); }
+.modal-close {
+  width: 28px; height: 28px; border-radius: var(--radius-sm);
+  background: var(--slate-100); border: none; cursor: pointer;
+  font-size: 14px; color: var(--slate-500);
+  display: flex; align-items: center; justify-content: center;
+  transition: var(--transition);
+}
+.modal-close:hover { background: var(--slate-200); color: var(--slate-800); }
+
+/* Shift picker modal */
+.shift-picker-title {
+  font-size: 12px; font-weight: 600; color: var(--slate-600);
+  margin-bottom: 12px;
+}
+.shift-picker-grid {
+  display: flex; gap: 10px;
+}
+.shift-opt {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  padding: 12px 16px; border-radius: var(--radius-md);
+  cursor: pointer; transition: var(--transition);
+  border: 2px solid transparent; min-width: 70px;
+}
+.shift-opt:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+.shift-opt-code {
+  font-size: 20px; font-weight: 800; font-family: var(--font-mono);
+}
+.shift-opt-label { font-size: 9px; font-weight: 600; text-align: center; }
+.so-M  { background: var(--blue-50);   border-color: var(--blue-100);   }
+.so-M  .shift-opt-code { color: var(--blue-600); }
+.so-M  .shift-opt-label { color: var(--blue-600); }
+.so-M:hover  { border-color: var(--blue-600); }
+.so-N  { background: #1A2744;   border-color: #253660;   }
+.so-N  .shift-opt-code { color: var(--night-fg); }
+.so-N  .shift-opt-label { color: var(--night-fg); opacity:.7; }
+.so-N:hover  { border-color: #4A7FC1; }
+.so-S  { background: var(--purple-100); border-color: #DDD6FE; }
+.so-S  .shift-opt-code { color: var(--purple-700); }
+.so-S  .shift-opt-label { color: var(--purple-700); }
+.so-S:hover  { border-color: var(--purple-700); }
+.so-R  { background: var(--slate-100); border-color: var(--slate-200); }
+.so-R  .shift-opt-code { color: var(--slate-500); }
+.so-R  .shift-opt-label { color: var(--slate-500); }
+.so-R:hover  { border-color: var(--slate-500); }
+.so-C  { background: var(--amber-50); border-color: var(--amber-100); }
+.so-C  .shift-opt-code { color: var(--amber-700); }
+.so-C  .shift-opt-label { color: var(--amber-700); }
+.so-C:hover  { border-color: var(--amber-700); }
+
+/* Staff modal */
+.form-field { display: flex; flex-direction: column; gap: 5px; margin-bottom: 14px; }
+.form-label { font-size: 11.5px; font-weight: 600; color: var(--slate-700); }
+.form-input {
+  padding: 8px 12px; border: 1.5px solid var(--slate-200);
+  border-radius: var(--radius-md); font-size: 13px;
+  font-family: var(--font-sans); outline: none; color: var(--slate-800);
+  background: var(--slate-50); transition: border-color .15s, box-shadow .15s;
+}
+.form-input:focus { border-color: var(--blue-600); box-shadow: var(--shadow-glow); background: white; }
+.form-input::placeholder { color: var(--slate-400); }
+.color-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.color-opt {
+  width: 26px; height: 26px; border-radius: 50%;
+  cursor: pointer; border: 2px solid transparent; transition: var(--transition);
+}
+.color-opt:hover, .color-opt.selected { border-color: var(--slate-800); transform: scale(1.15); }
+.modal-actions { display: flex; gap: 8px; margin-top: 18px; }
+.btn-modal-primary {
+  flex: 1; padding: 9px; border: none; border-radius: var(--radius-md);
+  background: var(--navy-900); color: white; font-size: 13px; font-weight: 700;
+  cursor: pointer; transition: var(--transition);
+}
+.btn-modal-primary:hover { background: var(--navy-700); }
+.btn-modal-cancel {
+  padding: 9px 18px; border: 1.5px solid var(--slate-200);
+  border-radius: var(--radius-md); background: white;
+  font-size: 13px; color: var(--slate-600); cursor: pointer;
+  transition: var(--transition);
+}
+.btn-modal-cancel:hover { background: var(--slate-50); border-color: var(--slate-300); }
+
+/* ══════════════════════════════════════════════
+   TOAST
+══════════════════════════════════════════════ */
+.toast {
+  position: fixed; bottom: 22px; right: 22px; z-index: 999;
+  padding: 11px 18px; border-radius: var(--radius-lg);
+  font-size: 12.5px; font-weight: 600;
+  box-shadow: var(--shadow-xl);
+  transform: translateY(70px); opacity: 0;
+  transition: all .3s cubic-bezier(.34,1.56,.64,1);
+  max-width: 320px;
+  display: flex; align-items: center; gap: 8px;
+  pointer-events: none;
+}
+.toast.show { transform: translateY(0); opacity: 1; }
+.toast.success { background: var(--navy-900); color: white; }
+.toast.error   { background: var(--rose-700);  color: white; }
+.toast.info    { background: var(--blue-600);   color: white; }
+
+/* ══════════════════════════════════════════════
+   RESPONSIVE
+══════════════════════════════════════════════ */
+@media (max-width: 900px) {
+  :root { --chat-w: 100%; }
+  .layout { flex-direction: column; height: auto; }
+  .chat-panel { width: 100%; height: 400px; }
+  .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+}
 </style>
 </head>
 <body>
 
-<!-- TOPBAR -->
-<div class="topbar">
-  <div class="topbar-logo">🏥</div>
-  <div>
-    <div class="topbar-title">Planning IA — Infirmiers</div>
+<!-- ══════════════════════════════════════════════
+     TOP BAR
+══════════════════════════════════════════════ -->
+<header class="topbar">
+  <div class="topbar-brand">
+    <div class="topbar-icon">🏥</div>
+    <div>
+      <div class="topbar-name">NurseFlow</div>
+      <div class="topbar-tagline">Plannings Infirmiers IA</div>
+    </div>
   </div>
-  <span class="topbar-sub">Propulsé par Groq</span>
-  <div class="topbar-actions">
-    <div class="status-dot" id="status-dot"></div>
-    <button class="btn btn-outline" onclick="resetPlanning()">↺ Réinitialiser</button>
-    <button class="btn btn-white" onclick="exporterExcel()">⬇ Export Excel</button>
-  </div>
-</div>
 
-<!-- LAYOUT -->
+  <div class="topbar-divider"></div>
+
+  <div class="topbar-week">
+    <button class="week-nav-btn" onclick="changerSemaine(-1)" title="Semaine précédente">◀</button>
+    <span id="topbar-week-label">Chargement…</span>
+    <button class="week-nav-btn" onclick="changerSemaine(1)" title="Semaine suivante">▶</button>
+    <button class="today-btn" onclick="aujourdhui()">Aujourd'hui</button>
+  </div>
+
+  <div class="topbar-actions">
+    <div class="status-pill">
+      <div class="status-dot" id="status-dot"></div>
+      <span class="status-text" id="status-text">En ligne</span>
+    </div>
+    <button class="btn-topbar btn-ghost" onclick="ouvrirModalInfirmier()">
+      + Infirmier
+    </button>
+    <button class="btn-topbar btn-primary" onclick="exporterExcel()">
+      ⬇ Excel
+    </button>
+    <button class="btn-topbar btn-danger-ghost" onclick="resetPlanning()">
+      ↺ Reset
+    </button>
+  </div>
+</header>
+
+<!-- ══════════════════════════════════════════════
+     LAYOUT
+══════════════════════════════════════════════ -->
 <div class="layout">
 
-  <!-- CHAT -->
-  <div class="chat-panel">
+  <!-- ══ CHAT PANEL ══ -->
+  <aside class="chat-panel">
+
     <div class="chat-header">
-      <div class="chat-header-title">🤖 Assistant IA</div>
-      <div class="chat-header-sub">Modifiez le planning en langage naturel</div>
+      <div class="chat-header-row">
+        <div class="chat-ai-badge">IA Groq</div>
+        <div class="chat-title">Assistant de Planification</div>
+      </div>
+      <div class="chat-sub">Analyste & modificateur du planning en temps réel</div>
     </div>
 
     <div class="api-bar" id="api-bar">
-      <input type="password" id="api-key" placeholder="Clé Groq : gsk_..." />
-      <button onclick="sauvegarderCle()">Enregistrer</button>
+      <span class="api-bar-icon" id="api-icon">🔑</span>
+      <input type="password" id="api-key" placeholder="Clé Groq : gsk_…" />
+      <button class="api-save-btn" onclick="sauvegarderCle()">Enregistrer</button>
     </div>
 
     <div class="chips-bar">
-      <div class="chip" onclick="envoyer('Déplace Sophie du lundi matin au mercredi soir')">↔ Déplacer</div>
-      <div class="chip" onclick="envoyer('Qui est disponible samedi nuit ?')">👤 Dispo</div>
-      <div class="chip" onclick="envoyer('Génère un planning équitable pour la semaine prochaine en rotation M/S/N')">📅 Générer</div>
-      <div class="chip" onclick="envoyer('Vérifie les conflits et heures sup du planning actuel')">⚠ Vérifier</div>
+      <div class="chip" onclick="envoyer('Analyse le planning et identifie tous les problèmes')">🔍 Analyser</div>
+      <div class="chip" onclick="envoyer('Génère un planning équilibré pour la semaine')">⚡ Générer</div>
+      <div class="chip" onclick="envoyer('Qui travaille samedi et dimanche nuit ?')">📋 Week-end</div>
+      <div class="chip" onclick="envoyer('Vérifie les violations de repos et heures sup')">⚠️ Alertes</div>
+      <div class="chip" onclick="envoyer('Donne-moi le score d\\'équité et les déséquilibres')">📊 Équité</div>
+      <div class="chip" onclick="envoyer('Quels jours sont en sous-effectif ?')">🏥 Couverture</div>
     </div>
 
     <div class="messages" id="messages">
       <div class="msg ai">
-        <div class="msg-who">Assistant IA</div>
+        <div class="msg-meta">Assistant IA</div>
         <div class="bubble">
-          Bonjour ! Je peux <b>lire et modifier</b> votre planning directement.<br><br>
+          Bonjour ! Je suis <strong>NurseFlow AI</strong>, votre assistant de planification hospitalière.<br><br>
+          Je peux <strong>analyser, modifier et optimiser</strong> votre planning en langage naturel.
           Essayez par exemple :<br>
-          <ul>
-            <li>Déplace Sophie du lundi au jeudi</li>
+          <ul style="margin-top:6px">
+            <li>Déplace Sophie du lundi au jeudi matin</li>
             <li>Échange Thomas et Hugo mercredi</li>
-            <li>Mets Karim en congé vendredi</li>
-            <li>Génère le planning semaine prochaine</li>
+            <li>Analyse les conflits et violations de repos</li>
+            <li>Génère un planning équitable pour la semaine</li>
           </ul>
         </div>
       </div>
     </div>
 
-    <div class="input-row">
-      <textarea id="user-input" placeholder="Tapez votre instruction…" rows="1"
+    <div class="input-area">
+      <textarea id="user-input" placeholder="Instruction ou question…" rows="1"
         onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();envoyer()}"
-        oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,90)+'px'"></textarea>
-      <button class="send-btn" id="send-btn" onclick="envoyer()">➤</button>
+        oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,100)+'px'"></textarea>
+      <button class="send-btn" id="send-btn" onclick="envoyer()" title="Envoyer (Entrée)">
+        <svg class="send-icon" viewBox="0 0 20 20"><path d="M3 10L17 3L10 17L9 11L3 10Z"/></svg>
+      </button>
     </div>
-  </div>
+  </aside>
 
-  <!-- MAIN -->
-  <div class="main">
+  <!-- ══ MAIN ══ -->
+  <main class="main">
 
-    <!-- STATS -->
-    <div class="stats" id="stats"></div>
+    <!-- KPI Cards -->
+    <div class="kpi-grid" id="kpi-grid">
+      <div class="kpi-card" style="--kpi-accent:var(--navy-400)">
+        <div class="kpi-label">Infirmiers</div>
+        <div class="kpi-value" id="kpi-agents">—</div>
+        <div class="kpi-sub">en service</div>
+        <span class="kpi-icon">👥</span>
+      </div>
+      <div class="kpi-card" style="--kpi-accent:var(--blue-600)">
+        <div class="kpi-label">Heures planifiées</div>
+        <div class="kpi-value" id="kpi-heures">—</div>
+        <div class="kpi-sub">cette semaine</div>
+        <span class="kpi-icon">⏱</span>
+      </div>
+      <div class="kpi-card" style="--kpi-accent:var(--night-bg)">
+        <div class="kpi-label">Gardes de nuit</div>
+        <div class="kpi-value" id="kpi-nuits">—</div>
+        <div class="kpi-sub">total semaine</div>
+        <span class="kpi-icon">🌙</span>
+      </div>
+      <div class="kpi-card" id="kpi-alerts-card" style="--kpi-accent:var(--slate-300)">
+        <div class="kpi-label">Alertes</div>
+        <div class="kpi-value" id="kpi-alertes">—</div>
+        <div class="kpi-sub" id="kpi-alerts-sub">—</div>
+        <span class="kpi-icon">⚡</span>
+      </div>
+      <div class="kpi-card" id="kpi-equity-card" style="--kpi-accent:var(--emerald-700)">
+        <div class="kpi-label">Score Équité</div>
+        <div class="kpi-value" id="kpi-equity">—</div>
+        <div class="kpi-sub" id="kpi-equity-sub">charge distribution</div>
+        <span class="kpi-icon">⚖</span>
+      </div>
+    </div>
 
-    <!-- TABLE -->
+    <!-- Planning Table -->
     <div class="table-card">
-      <div class="table-header">
-        <div class="table-title" id="table-title">Planning — Semaine du …</div>
-        <div class="table-actions">
-          <button class="btn-sm primary" onclick="ouvrirModalInfirmier()">➕ Ajouter un infirmier</button>
-          <button class="btn-sm" onclick="exporterExcel()">⬇ Exporter en Excel</button>
+      <div class="table-toolbar">
+        <div class="table-toolbar-left">
+          <div class="table-toolbar-title" id="table-title">Planning</div>
+          <div class="table-toolbar-badge" id="staff-count-badge">—</div>
+        </div>
+        <div class="table-toolbar-right">
+          <button class="btn-sm accent" onclick="ouvrirModalInfirmier()">＋ Infirmier</button>
+          <button class="btn-sm green" onclick="exporterExcel()">⬇ Exporter Excel</button>
         </div>
       </div>
-      <div style="overflow-x:auto">
-        <table id="planning-table">
+
+      <div class="table-wrap">
+        <table>
           <thead id="table-head"></thead>
           <tbody id="table-body"></tbody>
         </table>
       </div>
-      <div class="legend">
-        <div class="leg-item"><div class="leg-dot" style="background:#E6F1FB"></div>M = Matin 8h–20h</div>
 
-        <div class="leg-item"><div class="leg-dot" style="background:#2C2C2A"></div>N = Nuit 20h–8h</div>
-        <div class="leg-item"><div class="leg-dot" style="background:#E1F5EE"></div>R = Repos</div>
-        <div class="leg-item"><div class="leg-dot" style="background:#FAEEDA"></div>C = Congé</div>
-        <div class="leg-item" style="margin-left:auto;font-size:11px;color:#888">💡 Cliquez sur une cellule pour la modifier</div>
+      <div class="legend-strip">
+        <div class="leg-item"><div class="leg-chip gp-M">M</div>Matin 8h–20h</div>
+        <div class="leg-item"><div class="leg-chip gp-N">N</div>Nuit 20h–8h</div>
+        <div class="leg-item"><div class="leg-chip gp-S">S</div>Soirée 14h–22h</div>
+        <div class="leg-item"><div class="leg-chip gp-R">R</div>Repos</div>
+        <div class="leg-item"><div class="leg-chip gp-C">C</div>Congé</div>
+        <div class="leg-hint">💡 Cliquez sur une cellule pour modifier</div>
       </div>
     </div>
 
+  </main>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     MODAL — SHIFT PICKER
+══════════════════════════════════════════════ -->
+<div class="modal-overlay" id="modal-shift">
+  <div class="modal" style="min-width:340px">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-shift-title">Modifier la garde</div>
+      <button class="modal-close" onclick="fermerModalShift()">✕</button>
+    </div>
+    <div class="shift-picker-title" id="modal-shift-sub">Choisissez le type de garde :</div>
+    <div class="shift-picker-grid">
+      <div class="shift-opt so-M" onclick="appliquerShift('M')">
+        <div class="shift-opt-code">M</div>
+        <div class="shift-opt-label">MATIN<br>8h–20h</div>
+      </div>
+      <div class="shift-opt so-N" onclick="appliquerShift('N')">
+        <div class="shift-opt-code">N</div>
+        <div class="shift-opt-label">NUIT<br>20h–8h</div>
+      </div>
+      <div class="shift-opt so-S" onclick="appliquerShift('S')">
+        <div class="shift-opt-code">S</div>
+        <div class="shift-opt-label">SOIRÉE<br>14h–22h</div>
+      </div>
+      <div class="shift-opt so-R" onclick="appliquerShift('R')">
+        <div class="shift-opt-code">R</div>
+        <div class="shift-opt-label">REPOS</div>
+      </div>
+      <div class="shift-opt so-C" onclick="appliquerShift('C')">
+        <div class="shift-opt-code">C</div>
+        <div class="shift-opt-label">CONGÉ</div>
+      </div>
+    </div>
+    <button class="btn-modal-cancel" style="width:100%;margin-top:14px" onclick="fermerModalShift()">Annuler</button>
   </div>
 </div>
 
-<!-- MODAL INFIRMIER -->
-<div class="modal-bg" id="modal-inf-bg">
-  <div class="modal">
-    <div class="modal-title" id="modal-inf-title">Ajouter un infirmier</div>
-    <div style="display:flex; flex-direction:column; gap:10px;">
-      <input type="hidden" id="inf-id-input" />
-      <input type="text" id="inf-nom-input" placeholder="Nom complet" style="padding:8px; border:1px solid var(--border); border-radius:6px;" />
-      <input type="text" id="inf-service-input" placeholder="Service" style="padding:8px; border:1px solid var(--border); border-radius:6px;" />
-      <button class="btn-sm primary" style="margin-top:10px; width:100%; padding:10px;" onclick="sauvegarderInfirmier()">Enregistrer</button>
-      <button class="modal-cancel" style="margin-top:4px;" onclick="fermerModalInfirmier()">Annuler</button>
+<!-- ══════════════════════════════════════════════
+     MODAL — INFIRMIER
+══════════════════════════════════════════════ -->
+<div class="modal-overlay" id="modal-staff">
+  <div class="modal" style="min-width:300px;width:360px">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-staff-title">Ajouter un infirmier</div>
+      <button class="modal-close" onclick="fermerModalStaff()">✕</button>
+    </div>
+    <input type="hidden" id="staff-id-hidden"/>
+    <div class="form-field">
+      <label class="form-label">Nom complet *</label>
+      <input type="text" id="staff-nom" class="form-input" placeholder="ex : Sophie Martin"/>
+    </div>
+    <div class="form-field">
+      <label class="form-label">Service</label>
+      <input type="text" id="staff-service" class="form-input" placeholder="ex : Urgences, Chirurgie…"/>
+    </div>
+    <div class="form-field">
+      <label class="form-label">Couleur d'identification</label>
+      <div class="color-row" id="color-row">
+        <div class="color-opt" data-color="#3B82F6" style="background:#3B82F6" onclick="selectColor(this)"></div>
+        <div class="color-opt" data-color="#8B5CF6" style="background:#8B5CF6" onclick="selectColor(this)"></div>
+        <div class="color-opt" data-color="#10B981" style="background:#10B981" onclick="selectColor(this)"></div>
+        <div class="color-opt" data-color="#F59E0B" style="background:#F59E0B" onclick="selectColor(this)"></div>
+        <div class="color-opt" data-color="#EC4899" style="background:#EC4899" onclick="selectColor(this)"></div>
+        <div class="color-opt" data-color="#06B6D4" style="background:#06B6D4" onclick="selectColor(this)"></div>
+        <div class="color-opt" data-color="#84CC16" style="background:#84CC16" onclick="selectColor(this)"></div>
+        <div class="color-opt" data-color="#F97316" style="background:#F97316" onclick="selectColor(this)"></div>
+        <div class="color-opt" data-color="#EF4444" style="background:#EF4444" onclick="selectColor(this)"></div>
+        <div class="color-opt" data-color="#0EA5E9" style="background:#0EA5E9" onclick="selectColor(this)"></div>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-modal-primary" onclick="sauvegarderStaff()">Enregistrer</button>
+      <button class="btn-modal-cancel" onclick="fermerModalStaff()">Annuler</button>
     </div>
   </div>
 </div>
 
-<!-- MODAL MODIFICATION CELLULE -->
-<div class="modal-bg" id="modal-bg">
-  <div class="modal">
-    <div class="modal-title" id="modal-title">Modifier la garde</div>
-    <div class="garde-options">
-      <div class="garde-opt garde-M" onclick="appliquerModal('M')">M</div>
-      <div class="garde-opt garde-N" onclick="appliquerModal('N')">N</div>
-      <div class="garde-opt garde-R" onclick="appliquerModal('R')">R</div>
-      <div class="garde-opt garde-C" onclick="appliquerModal('C')">C</div>
-    </div>
-    <button class="modal-cancel" onclick="fermerModal()">Annuler</button>
-  </div>
-</div>
-
-<!-- TOAST -->
+<!-- Toast -->
 <div class="toast" id="toast"></div>
 
 <script>
-let planningData = null;
-let historique   = [];
-let apiKey       = localStorage.getItem("groq_key") || "";
-let modalInfId   = null;
-let modalJourIdx = null;
+/* ══════════════════════════════════════════════
+   STATE
+══════════════════════════════════════════════ */
+let planningData    = null;
+let historique      = [];
+let apiKey          = localStorage.getItem("nurseflow_key") || "";
+let currentDateStr  = "";
+let modalShiftInfId = null;
+let modalShiftJour  = null;
+let selectedColor   = "#3B82F6";
 
-// ── INIT ──────────────────────────────────────────────────────────────
+/* ══════════════════════════════════════════════
+   INIT
+══════════════════════════════════════════════ */
 document.addEventListener("DOMContentLoaded", () => {
   if (apiKey) {
     document.getElementById("api-key").value = apiKey;
     document.getElementById("api-bar").classList.add("ok");
+    document.getElementById("api-icon").textContent = "✅";
   }
   chargerPlanning();
 });
 
+/* ══════════════════════════════════════════════
+   API KEY
+══════════════════════════════════════════════ */
 function sauvegarderCle() {
-  apiKey = document.getElementById("api-key").value.trim();
-  if (!apiKey) return;
-  localStorage.setItem("groq_key", apiKey);
+  const val = document.getElementById("api-key").value.trim();
+  if (!val) { toast("Clé API vide", "error"); return; }
+  apiKey = val;
+  localStorage.setItem("nurseflow_key", apiKey);
   document.getElementById("api-bar").classList.add("ok");
-  afficherToast("Clé API enregistrée ✅");
+  document.getElementById("api-icon").textContent = "✅";
+  toast("Clé API enregistrée ✅", "success");
 }
 
-// ── CHARGEMENT DU PLANNING ────────────────────────────────────────────
-function ouvrirModalInfirmier(id = null, nom = "", service = "") {
-  document.getElementById("inf-id-input").value = id || "";
-  document.getElementById("inf-nom-input").value = nom;
-  document.getElementById("inf-service-input").value = service;
-  document.getElementById("modal-inf-title").textContent = id ? "Modifier l'infirmier" : "Ajouter un infirmier";
-  document.getElementById("modal-inf-bg").classList.add("open");
+/* ══════════════════════════════════════════════
+   WEEK NAVIGATION
+══════════════════════════════════════════════ */
+function changerSemaine(offset) {
+  if (!currentDateStr) return;
+  const d = new Date(currentDateStr);
+  d.setDate(d.getDate() + offset * 7);
+  currentDateStr = d.toISOString().split('T')[0];
+  chargerPlanning();
 }
-function fermerModalInfirmier() { document.getElementById("modal-inf-bg").classList.remove("open"); }
-
-async function sauvegarderInfirmier() {
-  const id = document.getElementById("inf-id-input").value;
-  const nom = document.getElementById("inf-nom-input").value.trim();
-  const service = document.getElementById("inf-service-input").value.trim();
-  if (!nom) return afficherToast("Le nom est obligatoire");
-  
-  fermerModalInfirmier();
-  if (id) {
-    await fetch("/api/infirmier/" + id, {
-      method:"PUT", headers:{"Content-Type":"application/json"},
-      body: JSON.stringify({nom, service})
-    });
-    afficherToast("Infirmier modifié");
-  } else {
-    await fetch("/api/infirmier", {
-      method:"POST", headers:{"Content-Type":"application/json"},
-      body: JSON.stringify({nom, service})
-    });
-    afficherToast("Infirmier ajouté");
-  }
+function aujourdhui() {
+  currentDateStr = "";
   chargerPlanning();
 }
 
-async function supprimerInfirmier(id, nom) {
-  if (!confirm("Voulez-vous vraiment supprimer " + nom + " ?")) return;
-  await fetch("/api/infirmier/" + id, { method:"DELETE" });
-  afficherToast("Infirmier supprimé");
-  chargerPlanning();
-}
-
+/* ══════════════════════════════════════════════
+   DATA LOADING
+══════════════════════════════════════════════ */
 async function chargerPlanning() {
-  const resp = await fetch("/api/planning");
-  planningData = await resp.json();
-  afficherPlanning();
+  try {
+    const url = "/api/planning" + (currentDateStr ? `?date=${currentDateStr}` : "");
+    const resp = await fetch(url);
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    planningData = await resp.json();
+    currentDateStr = planningData.date;
+    afficherPlanning();
+    document.getElementById("status-dot").style.background = "#22C55E";
+    document.getElementById("status-text").textContent = "En ligne";
+  } catch(e) {
+    document.getElementById("status-dot").style.background = "#EF4444";
+    document.getElementById("status-text").textContent = "Hors ligne";
+    toast("Erreur de chargement du planning", "error");
+  }
 }
 
+/* ══════════════════════════════════════════════
+   RENDER PLANNING
+══════════════════════════════════════════════ */
 function afficherPlanning() {
   const d = planningData;
-  document.getElementById("table-title").textContent =
-    `Planning — Semaine du ${d.semaine}`;
 
-  // Stats
-  let totalH = 0, alertes = 0, nuits = 0;
-  d.infirmiers.forEach(i => { totalH += i.heures; nuits += i.nuits; alertes += i.alertes.length; });
-  document.getElementById("stats").innerHTML = `
-    <div class="stat-card"><div class="stat-label">Infirmiers</div>
-      <div class="stat-value">${d.infirmiers.length}</div>
-      <div class="stat-sub">en service</div></div>
-    <div class="stat-card"><div class="stat-label">Heures planifiées</div>
-      <div class="stat-value">${totalH}h</div>
-      <div class="stat-sub">cette semaine</div></div>
-    <div class="stat-card"><div class="stat-label">Gardes de nuit</div>
-      <div class="stat-value">${nuits}</div>
-      <div class="stat-sub">au total</div></div>
-    <div class="stat-card"><div class="stat-label">Alertes</div>
-      <div class="stat-value" style="color:${alertes>0?'var(--red)':'var(--teal)'}">${alertes}</div>
-      <div class="stat-sub">${alertes===0?'aucun conflit':'à vérifier'}</div></div>`;
+  // Topbar week label
+  document.getElementById("topbar-week-label").textContent = `Semaine du ${d.semaine}`;
+  document.getElementById("table-title").textContent = `Planning — Semaine du ${d.semaine}`;
+  document.getElementById("staff-count-badge").textContent = `${d.infirmiers.length} agents`;
 
-  // Header
+  // KPIs
+  let totalH = 0, nuits = 0, alertes = 0;
+  d.infirmiers.forEach(i => {
+    totalH  += i.heures;
+    nuits   += i.nuits;
+    alertes += i.alertes.length;
+  });
+
+  document.getElementById("kpi-agents").textContent  = d.infirmiers.length;
+  document.getElementById("kpi-heures").textContent  = totalH + "h";
+  document.getElementById("kpi-nuits").textContent   = nuits;
+  document.getElementById("kpi-alertes").textContent = alertes;
+  document.getElementById("kpi-alerts-sub").textContent = alertes === 0 ? "aucun conflit ✅" : "à résoudre";
+  const alertCard = document.getElementById("kpi-alerts-card");
+  alertCard.style.setProperty("--kpi-accent", alertes > 0 ? "var(--rose-600)" : "var(--emerald-700)");
+  document.getElementById("kpi-alertes").style.color = alertes > 0 ? "var(--rose-600)" : "var(--emerald-700)";
+
+  if (d.equity) {
+    document.getElementById("kpi-equity").textContent = d.equity.score + "/100";
+    document.getElementById("kpi-equity-sub").textContent = `${d.equity.min}h min · ${d.equity.max}h max`;
+    const eqCard = document.getElementById("kpi-equity-card");
+    const sc = d.equity.score;
+    const col = sc >= 80 ? "var(--emerald-700)" : sc >= 60 ? "var(--amber-700)" : "var(--rose-600)";
+    eqCard.style.setProperty("--kpi-accent", col);
+    document.getElementById("kpi-equity").style.color = col;
+  }
+
+  // Table header
   document.getElementById("table-head").innerHTML = `<tr>
-    <th style="width:40px">#</th>
-    <th style="text-align:left;min-width:160px">Infirmier</th>
-    ${d.jours.map(j=>`<th>${j}</th>`).join("")}
-    <th>Total H</th><th>Nuits</th><th>Alertes</th></tr>`;
+    <th>#</th>
+    <th class="th-agent">Infirmier / Agent</th>
+    ${d.jours.map(j => `<th class="th-day">${j}</th>`).join("")}
+    <th class="th-stat">Total H</th>
+    <th class="th-stat">Nuits</th>
+    <th class="th-stat">Alertes</th>
+  </tr>`;
 
-  // Body
+  // Table body
   const tbody = document.getElementById("table-body");
   tbody.innerHTML = "";
 
   d.infirmiers.forEach((inf, idx) => {
     const tr = document.createElement("tr");
-    let hClass = inf.heures > 44 ? "h-bad" : inf.heures >= 35 ? "h-ok" : "h-warn";
+    tr.className = "data-row";
+
+    const initials = inf.nom.split(" ").map(p => p[0]).join("").slice(0,2).toUpperCase();
+    const color    = inf.couleur || "#64748B";
+    const hClass   = inf.heures > 48 ? "hb-bad" : inf.heures >= 35 ? "hb-ok" : "hb-warn";
+
+    // Build alert tags HTML
+    const alertsHtml = inf.alertes.length === 0
+      ? '<span style="font-size:10px;color:var(--slate-400)">—</span>'
+      : inf.alertes.map(a => {
+          const isWarn = a.includes("⚡") || a.includes("🌙");
+          return `<span class="alert-tag${isWarn ? ' warn' : ''}">${a}</span>`;
+        }).join("");
+
     tr.innerHTML = `
-      <td class="td-num">${idx+1}</td>
-      <td class="td-name">
-        <div style="display:flex; justify-content:space-between; align-items:center;">
-          <div>
-            <div class="name">${inf.nom}</div>
-            <div class="service">${inf.service}</div>
+      <td class="td-num"><span>${idx+1}</span></td>
+      <td class="td-agent">
+        <div class="td-agent-inner">
+          <div class="agent-avatar" style="background:${color}">${initials}</div>
+          <div class="agent-info">
+            <div class="agent-name">${escHtml(inf.nom)}</div>
+            <div class="agent-service">${escHtml(inf.service)}</div>
           </div>
-          <div style="display:flex; gap:4px;">
-            <button class="btn-sm" style="padding:2px 6px; font-size:11px;" onclick="ouvrirModalInfirmier(${inf.id}, '${inf.nom.replace(/'/g, "\\'")}', '${inf.service.replace(/'/g, "\\'")}')" title="Modifier">✏️</button>
-            <button class="btn-sm" style="padding:2px 6px; font-size:11px; color:var(--red);" onclick="supprimerInfirmier(${inf.id}, '${inf.nom.replace(/'/g, "\\'")}')" title="Supprimer">🗑️</button>
+          <div class="agent-actions">
+            <button class="icon-btn" onclick="ouvrirModalInfirmier(${inf.id},'${escAttr(inf.nom)}','${escAttr(inf.service)}','${color}')" title="Modifier">✏️</button>
+            <button class="icon-btn danger" onclick="supprimerInfirmier(${inf.id},'${escAttr(inf.nom)}')" title="Supprimer">🗑</button>
           </div>
         </div>
       </td>
-      ${inf.gardes.map((g,di) => `
+      ${inf.gardes.map((g, di) => `
         <td class="td-garde">
-          <div class="garde garde-${g}" onclick="ouvrirModal(${inf.id},${di},'${g}','${inf.nom}')"
-               title="${inf.nom} — ${d.jours[di]}">${g}</div>
+          <div class="garde-pill gp-${g}"
+               onclick="ouvrirModalShift(${inf.id}, ${di}, '${g}', '${escAttr(inf.nom)}')"
+               title="${escHtml(inf.nom)} — ${d.jours[di]}">${g}</div>
         </td>`).join("")}
-      <td class="td-heures"><span class="heures-badge ${hClass}">${inf.heures}h</span></td>
-      <td class="td-heures"><span style="font-size:13px;font-weight:600;color:${inf.nuits>=3?'var(--amber)':'var(--gray-m)'}">${inf.nuits}</span></td>
-      <td class="td-alertes"><span class="alerte">${inf.alertes.join(" ")}</span></td>`;
+      <td class="td-stat"><span class="hours-badge ${hClass}">${inf.heures}h</span></td>
+      <td class="td-stat" style="font-size:13px;font-weight:700;color:${inf.nuits>=3?'var(--amber-700)':'var(--slate-500)'}">${inf.nuits}</td>
+      <td class="td-alerts">${alertsHtml}</td>`;
     tbody.appendChild(tr);
   });
 
-  // Total row
-  const totals = d.jours.map((j, di) => {
-    const gardes = d.infirmiers.map(i => i.gardes[di]);
-    return `M:${gardes.filter(g=>g==="M").length} S:${gardes.filter(g=>g==="S").length} N:${gardes.filter(g=>g==="N").length}`;
-  });
-  const trTotal = document.createElement("tr");
-  trTotal.className = "total-row";
-  trTotal.innerHTML = `<td colspan="2">TOTAL PAR JOUR</td>${totals.map(t=>`<td>${t}</td>`).join("")}<td colspan="3"></td>`;
-  tbody.appendChild(trTotal);
+  // Coverage row
+  if (d.coverage) {
+    const covRow = document.createElement("tr");
+    covRow.className = "cov-row";
+    covRow.innerHTML = `
+      <td></td>
+      <td><span class="cov-label">Couverture</span></td>
+      ${d.coverage.map(c => `
+        <td><span class="cov-pill ${c.ok ? 'cov-ok' : 'cov-bad'}">
+          M:${c.M} N:${c.N}
+        </span></td>`).join("")}
+      <td colspan="3"></td>`;
+    tbody.appendChild(covRow);
+  }
 }
 
-// ── MODAL CLIC CELLULE ────────────────────────────────────────────────
-function ouvrirModal(infId, jourIdx, gardeActuelle, nomInf) {
-  modalInfId = infId; modalJourIdx = jourIdx;
-  document.getElementById("modal-title").textContent =
-    `${nomInf} — ${planningData.jours[jourIdx]} (actuel: ${gardeActuelle})`;
-  document.getElementById("modal-bg").classList.add("open");
+/* ══════════════════════════════════════════════
+   SHIFT MODAL
+══════════════════════════════════════════════ */
+function ouvrirModalShift(infId, jourIdx, gardeActuelle, nomInf) {
+  modalShiftInfId = infId;
+  modalShiftJour  = jourIdx;
+  document.getElementById("modal-shift-title").textContent = escHtml(nomInf);
+  document.getElementById("modal-shift-sub").textContent =
+    `${planningData.jours[jourIdx]} · Actuel : ${gardeActuelle} — Choisir :`;
+  document.getElementById("modal-shift").classList.add("open");
 }
-function fermerModal() { document.getElementById("modal-bg").classList.remove("open"); }
-async function appliquerModal(nouvelleGarde) {
-  fermerModal();
-  const inf = planningData.infirmiers.find(i => i.id === modalInfId);
+function fermerModalShift() { document.getElementById("modal-shift").classList.remove("open"); }
+async function appliquerShift(g) {
+  fermerModalShift();
+  const inf = planningData.infirmiers.find(i => i.id === modalShiftInfId);
   if (!inf) return;
-  inf.gardes[modalJourIdx] = nouvelleGarde;
+  inf.gardes[modalShiftJour] = g;
   await fetch("/api/planning", {
-    method:"POST", headers:{"Content-Type":"application/json"},
-    body: JSON.stringify({infirmiers: planningData.infirmiers})
+    method: "POST", headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({infirmiers: planningData.infirmiers, date: currentDateStr})
   });
   await chargerPlanning();
-  afficherToast(`${inf.nom} → ${planningData.jours[modalJourIdx]} : ${nouvelleGarde}`);
+  toast(`${inf.nom} — ${planningData.jours[modalShiftJour]} → ${g}`);
 }
 
-// ── CHAT ──────────────────────────────────────────────────────────────
+/* ══════════════════════════════════════════════
+   STAFF MODAL
+══════════════════════════════════════════════ */
+function selectColor(el) {
+  document.querySelectorAll(".color-opt").forEach(e => e.classList.remove("selected"));
+  el.classList.add("selected");
+  selectedColor = el.dataset.color;
+}
+function ouvrirModalInfirmier(id=null, nom="", service="", couleur="#3B82F6") {
+  document.getElementById("staff-id-hidden").value = id || "";
+  document.getElementById("staff-nom").value        = nom;
+  document.getElementById("staff-service").value    = service;
+  document.getElementById("modal-staff-title").textContent = id ? "Modifier l'infirmier" : "Ajouter un infirmier";
+  selectedColor = couleur;
+  document.querySelectorAll(".color-opt").forEach(e => {
+    e.classList.toggle("selected", e.dataset.color === couleur);
+  });
+  document.getElementById("modal-staff").classList.add("open");
+  setTimeout(() => document.getElementById("staff-nom").focus(), 80);
+}
+function fermerModalStaff() { document.getElementById("modal-staff").classList.remove("open"); }
+async function sauvegarderStaff() {
+  const id      = document.getElementById("staff-id-hidden").value;
+  const nom     = document.getElementById("staff-nom").value.trim();
+  const service = document.getElementById("staff-service").value.trim();
+  if (!nom) { toast("Le nom est obligatoire", "error"); return; }
+  fermerModalStaff();
+  if (id) {
+    await fetch(`/api/infirmier/${id}`, {
+      method: "PUT", headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({nom, service, couleur: selectedColor})
+    });
+    toast("Infirmier modifié ✅");
+  } else {
+    await fetch("/api/infirmier", {
+      method: "POST", headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({nom, service, couleur: selectedColor})
+    });
+    toast("Infirmier ajouté ✅");
+  }
+  chargerPlanning();
+}
+async function supprimerInfirmier(id, nom) {
+  if (!confirm(`Supprimer ${nom} du planning ?`)) return;
+  await fetch(`/api/infirmier/${id}`, {method: "DELETE"});
+  toast(`${nom} supprimé`);
+  chargerPlanning();
+}
+
+/* ══════════════════════════════════════════════
+   CHAT
+══════════════════════════════════════════════ */
 async function envoyer(texteForce) {
   const input = document.getElementById("user-input");
   const texte = texteForce || input.value.trim();
   if (!texte) return;
   if (!apiKey) {
-    ajouterMessage("ai", "⚠️ Entrez d'abord votre clé API Groq dans le champ en haut.");
+    ajouterMessage("ai", "⚠️ <strong>Clé API manquante.</strong> Renseignez votre clé Groq dans le champ en haut du panneau.");
     return;
   }
   input.value = ""; input.style.height = "auto";
   document.getElementById("send-btn").disabled = true;
-
-  ajouterMessage("user", texte);
+  ajouterMessage("user", escHtml(texte));
   const thinkEl = afficherThinking();
-
-  historique.push({role:"user", content: texte});
+  historique.push({role: "user", content: texte});
 
   try {
     const resp = await fetch("/api/chat", {
-      method:"POST", headers:{"Content-Type":"application/json"},
-      body: JSON.stringify({message: texte, api_key: apiKey, historique})
+      method: "POST", headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({message: texte, api_key: apiKey, historique, date: currentDateStr})
     });
     const data = await resp.json();
     thinkEl.remove();
 
     if (!resp.ok) {
-      ajouterMessage("ai", `❌ ${data.erreur}`);
+      ajouterMessage("ai", `❌ <strong>Erreur :</strong> ${escHtml(data.erreur)}`);
       historique.pop();
     } else {
-      historique.push({role:"assistant", content: data.texte});
-      let html = data.texte.replace(/\*\*(.*?)\*\*/g,"<b>$1</b>").replace(/\n/g,"<br>");
+      historique.push({role: "assistant", content: data.texte});
+      if (historique.length > 20) historique = historique.slice(-20);
+
+      let html = formatAIText(data.texte);
       if (data.modifications && data.modifications.length > 0) {
-        html += `<div class="modif-list">✅ Modifications appliquées :<br>${
-          data.modifications.map(m=>`<div>• ${m}</div>`).join("")}</div>`;
+        html += `<div class="modif-list">
+          <div class="modif-list-header">✅ ${data.modifications.length} modification(s) appliquée(s)</div>
+          ${data.modifications.map(m => `<div class="modif-item">${escHtml(m)}</div>`).join("")}
+        </div>`;
         await chargerPlanning();
-        afficherToast("Planning mis à jour !");
+        toast(`${data.modifications.length} modification(s) appliquée(s) ✅`);
       }
       ajouterMessage("ai", html);
     }
   } catch(e) {
     thinkEl.remove();
-    ajouterMessage("ai", "❌ Erreur de connexion. Le serveur Python est-il lancé ?");
+    ajouterMessage("ai", "❌ Erreur de connexion. Vérifiez que le serveur Python est en cours d'exécution.");
   }
   document.getElementById("send-btn").disabled = false;
 }
 
+function formatAIText(txt) {
+  return txt
+    .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+    .replace(/\*(.*?)\*/g, "<em>$1</em>")
+    .replace(/`([^`]+)`/g, `<code style="background:var(--slate-100);padding:1px 5px;border-radius:3px;font-family:var(--font-mono);font-size:11px">$1</code>`)
+    .replace(/\n/g, "<br>");
+}
+
 function ajouterMessage(role, html) {
   const msgs = document.getElementById("messages");
-  const div = document.createElement("div");
+  const div  = document.createElement("div");
   div.className = `msg ${role}`;
-  div.innerHTML = `<div class="msg-who">${role==="ai"?"Assistant IA":"Vous"}</div>
-                   <div class="bubble">${html}</div>`;
+  const now  = new Date().toLocaleTimeString("fr-FR", {hour:"2-digit",minute:"2-digit"});
+  div.innerHTML = `
+    <div class="msg-meta">${role === "ai" ? "NurseFlow AI" : "Vous"} · ${now}</div>
+    <div class="bubble">${html}</div>`;
   msgs.appendChild(div);
   msgs.scrollTop = msgs.scrollHeight;
 }
 
 function afficherThinking() {
   const msgs = document.getElementById("messages");
-  const div = document.createElement("div");
+  const div  = document.createElement("div");
   div.className = "msg ai";
-  div.innerHTML = `<div class="msg-who">Assistant IA</div>
-    <div class="thinking"><div class="dot"></div><div class="dot"></div><div class="dot"></div>
-    <span style="font-size:11px;color:var(--gray-m);margin-left:4px">Analyse en cours…</span></div>`;
+  div.innerHTML = `
+    <div class="msg-meta">NurseFlow AI</div>
+    <div class="thinking-bubble">
+      <div class="thinking-dots">
+        <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+      </div>
+      <span class="thinking-label">Analyse du planning en cours…</span>
+    </div>`;
   msgs.appendChild(div);
   msgs.scrollTop = msgs.scrollHeight;
   return div;
 }
 
-// ── EXPORT ────────────────────────────────────────────────────────────
+/* ══════════════════════════════════════════════
+   EXPORT
+══════════════════════════════════════════════ */
 async function exporterExcel() {
-  afficherToast("Génération du fichier Excel…");
-  const resp = await fetch("/api/export", {method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body: JSON.stringify({titre:`Planning Infirmiers — Semaine du ${planningData?.semaine||""}`})
-  });
-  const blob = await resp.blob();
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url; a.download = `planning_infirmiers.xlsx`;
-  a.click(); URL.revokeObjectURL(url);
-  afficherToast("Fichier Excel téléchargé ✅");
+  toast("Génération du fichier Excel…", "info");
+  try {
+    const resp = await fetch("/api/export", {
+      method: "POST", headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({date: currentDateStr})
+    });
+    if (!resp.ok) throw new Error("Export échoué");
+    const blob = await resp.blob();
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement("a");
+    a.href = url; a.download = `planning_${currentDateStr || "courant"}.xlsx`;
+    a.click(); URL.revokeObjectURL(url);
+    toast("Fichier Excel téléchargé ✅", "success");
+  } catch(e) {
+    toast("❌ Erreur lors de l'export", "error");
+  }
 }
 
-// ── RESET ─────────────────────────────────────────────────────────────
+/* ══════════════════════════════════════════════
+   RESET
+══════════════════════════════════════════════ */
 async function resetPlanning() {
-  if (!confirm("Réinitialiser le planning aux données d'origine ?")) return;
-  await fetch("/api/reset", {method:"POST"});
-  await chargerPlanning();
+  if (!confirm("Réinitialiser le planning aux données d'origine ? Cette action est irréversible.")) return;
+  await fetch("/api/reset", {method: "POST"});
   historique = [];
-  afficherToast("Planning réinitialisé");
+  await chargerPlanning();
+  toast("Planning réinitialisé", "info");
 }
 
-// ── TOAST ─────────────────────────────────────────────────────────────
-function afficherToast(msg) {
-  const t = document.getElementById("toast");
-  t.textContent = msg; t.classList.add("show");
-  setTimeout(() => t.classList.remove("show"), 2800);
+/* ══════════════════════════════════════════════
+   UTILS
+══════════════════════════════════════════════ */
+function escHtml(s) {
+  return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
 }
+function escAttr(s) {
+  return String(s).replace(/'/g,"\\'");
+}
+
+let toastTimer;
+function toast(msg, type="success") {
+  clearTimeout(toastTimer);
+  const t = document.getElementById("toast");
+  const icons = {success:"✅", error:"❌", info:"ℹ️"};
+  t.textContent = `${icons[type]||""} ${msg}`;
+  t.className = `toast ${type} show`;
+  toastTimer = setTimeout(() => t.classList.remove("show"), 3200);
+}
+
+// Close modals on overlay click
+document.getElementById("modal-shift").addEventListener("click", e => {
+  if (e.target === e.currentTarget) fermerModalShift();
+});
+document.getElementById("modal-staff").addEventListener("click", e => {
+  if (e.target === e.currentTarget) fermerModalStaff();
+});
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape") { fermerModalShift(); fermerModalStaff(); }
+});
 </script>
 </body>
 </html>
