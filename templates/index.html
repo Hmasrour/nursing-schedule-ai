@@ -785,6 +785,11 @@ tr:hover .agent-actions { opacity: 1; }
   </div>
 
   <div class="topbar-actions">
+    <select id="lang-select" onchange="changerLangue(this.value)" style="background: rgba(255,255,255,.1); color: white; border: 1px solid rgba(255,255,255,.2); padding: 4px 8px; border-radius: 6px; font-size: 12px; outline: none;">
+      <option value="fr" style="color: black;">🇫🇷 FR</option>
+      <option value="de" style="color: black;">🇩🇪 DE</option>
+      <option value="en" style="color: black;">🇬🇧 EN</option>
+    </select>
     <div class="status-pill">
       <div class="status-dot" id="status-dot"></div>
       <span class="status-text" id="status-text">En ligne</span>
@@ -1012,6 +1017,150 @@ tr:hover .agent-actions { opacity: 1; }
 /* ══════════════════════════════════════════════
    STATE
 ══════════════════════════════════════════════ */
+const i18n = {
+  fr: {
+    topbarTagline: "Plannings Infirmiers IA", today: "Aujourd'hui",
+    addStaff: "+ Infirmier", exportExcel: "⬇ Excel", reset: "↺ Reset",
+    chatTitle: "Assistant de Planification", chatSub: "Analyste & modificateur du planning en temps réel",
+    chipAnalyze: "🔍 Analyser", chipGen: "⚡ Générer", chipWe: "📋 Week-end", chipAlert: "⚠️ Alertes", chipEq: "📊 Équité", chipCov: "🏥 Couverture",
+    welcome: "Bonjour ! Je suis <strong>NurseFlow AI</strong>, votre assistant de planification hospitalière.<br><br>Je peux <strong>analyser, modifier et optimiser</strong> votre planning en langage naturel. Essayez par exemple :<br><ul style='margin-top:6px'><li>Déplace Sophie du lundi au jeudi matin</li><li>Échange Thomas et Hugo mercredi</li><li>Analyse les conflits et violations de repos</li><li>Génère un planning équitable pour la semaine</li></ul>",
+    kpiStaff: "Infirmiers", kpiStaffSub: "en service",
+    kpiHrs: "Heures planifiées", kpiHrsSub: "cette semaine",
+    kpiNights: "Gardes de nuit", kpiNightsSub: "total semaine",
+    kpiAlerts: "Alertes", kpiAlertsSub0: "aucun conflit ✅", kpiAlertsSubN: "à résoudre",
+    kpiEq: "Score Équité", kpiEqSub: "charge distribution",
+    thAgent: "Infirmier / Agent", thTotal: "Total H", thNights: "Nuits", thAlerts: "Alertes", covLabel: "Couverture",
+    shiftM: "M", shiftN: "N", shiftS: "S", shiftR: "R", shiftC: "C",
+    descM: "Matin 8h-20h", descN: "Nuit 20h-8h", descS: "Soirée 14h-22h", descR: "Repos", descC: "Congé",
+    hint: "Cliquez sur une cellule pour modifier",
+    promptAnalyze: "Analyse le planning et identifie tous les problèmes", promptGen: "Génère un planning équilibré pour la semaine",
+    promptWe: "Qui travaille samedi et dimanche nuit ?", promptAlert: "Vérifie les violations de repos et heures sup",
+    promptEq: "Donne-moi le score d'équité", promptCov: "Quels jours sont en sous-effectif ?"
+  },
+  de: {
+    topbarTagline: "KI Pflege-Dienstpläne", today: "Heute",
+    addStaff: "+ Pflegekraft", exportExcel: "⬇ Excel", reset: "↺ Reset",
+    chatTitle: "Planungsassistent", chatSub: "Echtzeit-Plananalysator",
+    chipAnalyze: "🔍 Analysieren", chipGen: "⚡ Generieren", chipWe: "📋 Wochenende", chipAlert: "⚠️ Warnungen", chipEq: "📊 Fairness", chipCov: "🏥 Abdeckung",
+    welcome: "Hallo! Ich bin <strong>NurseFlow AI</strong>, Ihr Assistent für die Krankenhausplanung.<br><br>Ich kann Ihren Dienstplan in natürlicher Sprache <strong>analysieren, ändern und optimieren</strong>. Versuchen Sie zum Beispiel:<br><ul style='margin-top:6px'><li>Verschiebe Sophie von Montag auf Donnerstagmorgen</li><li>Tausche Thomas und Hugo am Mittwoch</li><li>Analysiere Konflikte und Ruhezeitverletzungen</li><li>Generiere einen fairen Plan für die Woche</li></ul>",
+    kpiStaff: "Pflegekräfte", kpiStaffSub: "im Dienst",
+    kpiHrs: "Geplante Stunden", kpiHrsSub: "diese Woche",
+    kpiNights: "Nachtschichten", kpiNightsSub: "Gesamte Woche",
+    kpiAlerts: "Warnungen", kpiAlertsSub0: "keine Konflikte ✅", kpiAlertsSubN: "zu lösen",
+    kpiEq: "Fairness-Score", kpiEqSub: "Arbeitslastverteilung",
+    thAgent: "Pflegekraft", thTotal: "Gesamt H", thNights: "Nächte", thAlerts: "Warnungen", covLabel: "Abdeckung",
+    shiftM: "F", shiftN: "N", shiftS: "S", shiftR: "R", shiftC: "U",
+    descM: "Früh 8-20h", descN: "Nacht 20-8h", descS: "Spät 14-22h", descR: "Frei", descC: "Urlaub",
+    hint: "Klicken Sie auf eine Zelle, um sie zu ändern",
+    promptAnalyze: "Analysiere den Plan und identifiziere alle Probleme", promptGen: "Generiere einen ausgewogenen Plan",
+    promptWe: "Wer arbeitet am Samstag und Sonntag nachts?", promptAlert: "Überprüfe auf Ruhezeitverletzungen",
+    promptEq: "Gib mir den Fairness-Score", promptCov: "Welche Tage sind unterbesetzt?"
+  },
+  en: {
+    topbarTagline: "AI Nursing Schedules", today: "Today",
+    addStaff: "+ Nurse", exportExcel: "⬇ Excel", reset: "↺ Reset",
+    chatTitle: "Planning Assistant", chatSub: "Real-time schedule editor",
+    chipAnalyze: "🔍 Analyze", chipGen: "⚡ Generate", chipWe: "📋 Weekend", chipAlert: "⚠️ Alerts", chipEq: "📊 Equity", chipCov: "🏥 Coverage",
+    welcome: "Hello! I am <strong>NurseFlow AI</strong>, your hospital scheduling assistant.<br><br>I can <strong>analyze, modify, and optimize</strong> your schedule in natural language. Try for example:<br><ul style='margin-top:6px'><li>Move Sophie from Monday to Thursday morning</li><li>Swap Thomas and Hugo on Wednesday</li><li>Analyze conflicts and rest violations</li><li>Generate a fair schedule for the week</li></ul>",
+    kpiStaff: "Nurses", kpiStaffSub: "on duty",
+    kpiHrs: "Scheduled Hours", kpiHrsSub: "this week",
+    kpiNights: "Night Shifts", kpiNightsSub: "week total",
+    kpiAlerts: "Alerts", kpiAlertsSub0: "no conflicts ✅", kpiAlertsSubN: "to resolve",
+    kpiEq: "Equity Score", kpiEqSub: "workload distribution",
+    thAgent: "Nurse", thTotal: "Total H", thNights: "Nights", thAlerts: "Alerts", covLabel: "Coverage",
+    shiftM: "M", shiftN: "N", shiftS: "E", shiftR: "R", shiftC: "V",
+    descM: "Morning 8-20h", descN: "Night 20-8h", descS: "Evening 14-22h", descR: "Rest", descC: "Vacation",
+    hint: "Click a cell to modify",
+    promptAnalyze: "Analyze the schedule", promptGen: "Generate a balanced schedule",
+    promptWe: "Who works Saturday and Sunday nights?", promptAlert: "Check for rest violations",
+    promptEq: "Give me the equity score", promptCov: "Which days are understaffed?"
+  }
+};
+
+let currentLang = localStorage.getItem("nurseflow_lang") || "fr";
+
+function t(key) { return i18n[currentLang][key] || i18n["fr"][key] || key; }
+
+function appliquerTraductions() {
+  document.querySelector(".topbar-tagline").textContent = t("topbarTagline");
+  document.querySelector(".today-btn").textContent = t("today");
+  document.querySelector(".chat-title").textContent = t("chatTitle");
+  document.querySelector(".chat-sub").textContent = t("chatSub");
+  
+  const chips = document.querySelectorAll(".chip");
+  chips[0].textContent = t("chipAnalyze"); chips[0].setAttribute("onclick", `envoyer('${t("promptAnalyze")}')`);
+  chips[1].textContent = t("chipGen"); chips[1].setAttribute("onclick", `envoyer('${t("promptGen")}')`);
+  chips[2].textContent = t("chipWe"); chips[2].setAttribute("onclick", `envoyer('${t("promptWe")}')`);
+  chips[3].textContent = t("chipAlert"); chips[3].setAttribute("onclick", `envoyer('${t("promptAlert")}')`);
+  chips[4].textContent = t("chipEq"); chips[4].setAttribute("onclick", `envoyer('${t("promptEq")}')`);
+  chips[5].textContent = t("chipCov"); chips[5].setAttribute("onclick", `envoyer('${t("promptCov")}')`);
+
+  document.querySelectorAll(".kpi-label")[0].textContent = t("kpiStaff");
+  document.querySelectorAll(".kpi-sub")[0].textContent = t("kpiStaffSub");
+  document.querySelectorAll(".kpi-label")[1].textContent = t("kpiHrs");
+  document.querySelectorAll(".kpi-sub")[1].textContent = t("kpiHrsSub");
+  document.querySelectorAll(".kpi-label")[2].textContent = t("kpiNights");
+  document.querySelectorAll(".kpi-sub")[2].textContent = t("kpiNightsSub");
+  document.querySelectorAll(".kpi-label")[3].textContent = t("kpiAlerts");
+  document.querySelectorAll(".kpi-label")[4].textContent = t("kpiEq");
+  document.getElementById("kpi-equity-sub").textContent = t("kpiEqSub");
+
+  document.querySelectorAll(".btn-topbar").forEach(btn => {
+    if(btn.textContent.includes("Infirmier") || btn.textContent.includes("Pflegekraft") || btn.textContent.includes("Nurse")) btn.innerHTML = t("addStaff");
+    if(btn.textContent.includes("Excel")) btn.innerHTML = t("exportExcel");
+    if(btn.textContent.includes("Reset")) btn.innerHTML = t("reset");
+  });
+
+  document.querySelector(".btn-sm.accent").textContent = t("addStaff");
+  document.querySelector(".btn-sm.green").textContent = t("exportExcel");
+
+  const legItems = document.querySelectorAll(".leg-item");
+  legItems[0].innerHTML = `<div class="leg-chip gp-M">${t("shiftM")}</div>${t("descM")}`;
+  legItems[1].innerHTML = `<div class="leg-chip gp-N">${t("shiftN")}</div>${t("descN")}`;
+  legItems[2].innerHTML = `<div class="leg-chip gp-S">${t("shiftS")}</div>${t("descS")}`;
+  legItems[3].innerHTML = `<div class="leg-chip gp-R">${t("shiftR")}</div>${t("descR")}`;
+  legItems[4].innerHTML = `<div class="leg-chip gp-C">${t("shiftC")}</div>${t("descC")}`;
+  document.querySelector(".leg-hint").innerHTML = `💡 ${t("hint")}`;
+
+  document.querySelector(".so-M .shift-opt-code").textContent = t("shiftM");
+  document.querySelector(".so-M .shift-opt-label").innerHTML = t("descM").replace(" ", "<br>");
+  document.querySelector(".so-N .shift-opt-code").textContent = t("shiftN");
+  document.querySelector(".so-N .shift-opt-label").innerHTML = t("descN").replace(" ", "<br>");
+  document.querySelector(".so-S .shift-opt-code").textContent = t("shiftS");
+  document.querySelector(".so-S .shift-opt-label").innerHTML = t("descS").replace(" ", "<br>");
+  document.querySelector(".so-R .shift-opt-code").textContent = t("shiftR");
+  document.querySelector(".so-R .shift-opt-label").textContent = t("descR");
+  document.querySelector(".so-C .shift-opt-code").textContent = t("shiftC");
+  document.querySelector(".so-C .shift-opt-label").textContent = t("descC");
+
+  const msgs = document.getElementById("messages");
+  if(msgs && msgs.children.length > 0 && msgs.children[0].classList.contains("ai")) {
+    msgs.children[0].querySelector(".bubble").innerHTML = t("welcome");
+  }
+}
+
+const serviceTrans = {
+  "Urgences": { en: "ER", de: "Notaufnahme", fr: "Urgences" },
+  "Chirurgie": { en: "Surgery", de: "Chirurgie", fr: "Chirurgie" },
+  "Bloc Op.": { en: "OR", de: "OP", fr: "Bloc Op." },
+  "Pédiatrie": { en: "Pediatrics", de: "Pädiatrie", fr: "Pédiatrie" },
+  "Coordination": { en: "Coordination", de: "Koordination", fr: "Coordination" },
+  "Général": { en: "General", de: "Allgemein", fr: "Général" }
+};
+function tService(s) {
+  if (!s) return s;
+  if (serviceTrans[s] && serviceTrans[s][currentLang]) return serviceTrans[s][currentLang];
+  return s;
+}
+
+function changerLangue(lang) {
+  currentLang = lang;
+  localStorage.setItem("nurseflow_lang", lang);
+  document.getElementById("lang-select").value = lang;
+  appliquerTraductions();
+  chargerPlanning();
+}
+
 let planningData    = null;
 let historique      = [];
 let apiKey          = localStorage.getItem("nurseflow_key") || "";
@@ -1029,6 +1178,8 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("api-bar").classList.add("ok");
     document.getElementById("api-icon").textContent = "✅";
   }
+  document.getElementById("lang-select").value = currentLang;
+  appliquerTraductions();
   chargerPlanning();
 });
 
@@ -1065,7 +1216,7 @@ function aujourdhui() {
 ══════════════════════════════════════════════ */
 async function chargerPlanning() {
   try {
-    const url = "/api/planning" + (currentDateStr ? `?date=${currentDateStr}` : "");
+    const url = "/api/planning" + (currentDateStr ? `?date=${currentDateStr}&lang=${currentLang}` : `?lang=${currentLang}`);
     const resp = await fetch(url);
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
     planningData = await resp.json();
@@ -1121,11 +1272,11 @@ function afficherPlanning() {
   // Table header
   document.getElementById("table-head").innerHTML = `<tr>
     <th>#</th>
-    <th class="th-agent">Infirmier / Agent</th>
+    <th class="th-agent">${t('thAgent')}</th>
     ${d.jours.map(j => `<th class="th-day">${j}</th>`).join("")}
-    <th class="th-stat">Total H</th>
-    <th class="th-stat">Nuits</th>
-    <th class="th-stat">Alertes</th>
+    <th class="th-stat">${t('thTotal')}</th>
+    <th class="th-stat">${t('thNights')}</th>
+    <th class="th-stat">${t('thAlerts')}</th>
   </tr>`;
 
   // Table body
@@ -1155,7 +1306,7 @@ function afficherPlanning() {
           <div class="agent-avatar" style="background:${color}">${initials}</div>
           <div class="agent-info">
             <div class="agent-name">${escHtml(inf.nom)}</div>
-            <div class="agent-service">${escHtml(inf.service)}</div>
+            <div class="agent-service">${escHtml(tService(inf.service))}</div>
           </div>
           <div class="agent-actions">
             <button class="icon-btn" onclick="ouvrirModalInfirmier(${inf.id},'${escAttr(inf.nom)}','${escAttr(inf.service)}','${color}')" title="Modifier">✏️</button>
@@ -1167,7 +1318,7 @@ function afficherPlanning() {
         <td class="td-garde">
           <div class="garde-pill gp-${g}"
                onclick="ouvrirModalShift(${inf.id}, ${di}, '${g}', '${escAttr(inf.nom)}')"
-               title="${escHtml(inf.nom)} — ${d.jours[di]}">${g}</div>
+               title="${escHtml(inf.nom)} — ${d.jours[di]}">${t('shift'+g)}</div>
         </td>`).join("")}
       <td class="td-stat"><span class="hours-badge ${hClass}">${inf.heures}h</span></td>
       <td class="td-stat" style="font-size:13px;font-weight:700;color:${inf.nuits>=3?'var(--amber-700)':'var(--slate-500)'}">${inf.nuits}</td>
@@ -1181,7 +1332,7 @@ function afficherPlanning() {
     covRow.className = "cov-row";
     covRow.innerHTML = `
       <td></td>
-      <td><span class="cov-label">Couverture</span></td>
+      <td><span class="cov-label">${t('covLabel')}</span></td>
       ${d.coverage.map(c => `
         <td><span class="cov-pill ${c.ok ? 'cov-ok' : 'cov-bad'}">
           M:${c.M} N:${c.N}
@@ -1210,7 +1361,7 @@ async function appliquerShift(g) {
   inf.gardes[modalShiftJour] = g;
   await fetch("/api/planning", {
     method: "POST", headers: {"Content-Type":"application/json"},
-    body: JSON.stringify({infirmiers: planningData.infirmiers, date: currentDateStr})
+    body: JSON.stringify({infirmiers: planningData.infirmiers, date: currentDateStr, lang: currentLang})
   });
   await chargerPlanning();
   toast(`${inf.nom} — ${planningData.jours[modalShiftJour]} → ${g}`);
@@ -1285,7 +1436,7 @@ async function envoyer(texteForce) {
   try {
     const resp = await fetch("/api/chat", {
       method: "POST", headers: {"Content-Type":"application/json"},
-      body: JSON.stringify({message: texte, api_key: apiKey, historique, date: currentDateStr})
+      body: JSON.stringify({message: texte, api_key: apiKey, historique, date: currentDateStr, lang: currentLang})
     });
     const data = await resp.json();
     thinkEl.remove();
@@ -1360,7 +1511,7 @@ async function exporterExcel() {
   try {
     const resp = await fetch("/api/export", {
       method: "POST", headers: {"Content-Type":"application/json"},
-      body: JSON.stringify({date: currentDateStr})
+      body: JSON.stringify({date: currentDateStr, lang: currentLang})
     });
     if (!resp.ok) throw new Error("Export échoué");
     const blob = await resp.blob();

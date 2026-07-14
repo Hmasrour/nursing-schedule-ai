@@ -18,15 +18,19 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("nurseflow")
 
 # ── Constants ────────────────────────────────────────────────────────────
-MOIS_FR  = ["Janvier","Février","Mars","Avril","Mai","Juin",
-            "Juillet","Août","Septembre","Octobre","Novembre","Décembre"]
-JOURS_FR = ["Lun","Mar","Mer","Jeu","Ven","Sam","Dim"]
-JOURS_FULL = ["Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi","Dimanche"]
+MOIS = {
+    "fr": ["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"],
+    "en": ["January","February","March","April","May","June","July","August","September","October","November","December"],
+    "de": ["Januar","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"]
+}
+JOURS = {
+    "fr": ["Lun","Mar","Mer","Jeu","Ven","Sam","Dim"],
+    "en": ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"],
+    "de": ["Mo","Di","Mi","Do","Fr","Sa","So"]
+}
 
-SHIFT_CODES = {"M", "N", "R", "C", "S"}   # S = Soirée (added shift type)
+SHIFT_CODES = {"M", "N", "R", "C", "S"}   
 SHIFT_H = {"M": 10, "N": 10, "S": 8, "R": 0, "C": 0}
-SHIFT_LABELS = {"M": "Matin 8h–20h", "N": "Nuit 20h–8h", "S": "Soirée 14h–22h",
-                "R": "Repos", "C": "Congé"}
 
 GROQ_MODEL   = "llama-3.3-70b-versatile"
 GROQ_ENDPOINT = "https://api.groq.com/openai/v1/chat/completions"
@@ -36,9 +40,9 @@ def get_monday(d=None):
     d = d or datetime.date.today()
     return d - datetime.timedelta(days=d.weekday())
 
-def fmt_week(start):
-    label = f"{start.day} {MOIS_FR[start.month-1]} {start.year}"
-    days  = [f"{JOURS_FR[(start+datetime.timedelta(i)).weekday()]} "
+def fmt_week(start, lang="fr"):
+    label = f"{start.day} {MOIS[lang][start.month-1]} {start.year}"
+    days  = [f"{JOURS[lang][(start+datetime.timedelta(i)).weekday()]} "
              f"{(start+datetime.timedelta(i)).day}/{(start+datetime.timedelta(i)).month}"
              for i in range(7)]
     return label, days
@@ -82,20 +86,19 @@ def get_state(date_str=None):
         date_str = start.isoformat()
 
     if date_str not in planning_db:
-        label, days = fmt_week(start)
         if not planning_db:
             staff = json.loads(json.dumps(STAFF_LIST))
         else:
             staff = [{"id": s["id"], "nom": s["nom"], "service": s["service"],
                       "couleur": s.get("couleur", "#64748B"), "gardes": ["R"]*7}
                      for s in STAFF_LIST]
-        planning_db[date_str] = {"semaine": label, "jours": days, "infirmiers": staff,
+        planning_db[date_str] = {"infirmiers": staff,
                                  "notes": {}, "created_at": datetime.datetime.now().isoformat()}
 
-    return planning_db[date_str], date_str
+    return planning_db[date_str], date_str, start
 
 # ── Analytics ─────────────────────────────────────────────────────────────
-def calculer_stats(gardes):
+def calculer_stats(gardes, lang="fr"):
     heures = sum(SHIFT_H.get(g, 0) for g in gardes)
     nuits  = gardes.count("N")
     matins = gardes.count("M")
@@ -116,27 +119,42 @@ def calculer_stats(gardes):
     # Rest violations
     repos_violation = any(gardes[i] == "N" and gardes[i+1] == "M"
                           for i in range(len(gardes)-1))
-    nuit_jour_double = any(gardes[i] in ("N","M") and gardes[i+1] in ("N","M")
-                           and gardes[i] != gardes[i+1]
-                           for i in range(len(gardes)-1))
+
+    MESSAGES = {
+        "fr": {
+            "48h": "⚠ Dépassement 48h/semaine", "40h": "⚡ Heures supp. (>40h)",
+            "3n": "🌙 3+ nuits consécutives", "repos": "🚨 Repos insuffisant (N→M)",
+            "6j": "⚠ 6+ jours sans repos", "0r": "❌ Aucun repos"
+        },
+        "en": {
+            "48h": "⚠ Exceeds 48h/week", "40h": "⚡ Overtime (>40h)",
+            "3n": "🌙 3+ consecutive nights", "repos": "🚨 Insufficient rest (N→M)",
+            "6j": "⚠ 6+ days without rest", "0r": "❌ No rest"
+        },
+        "de": {
+            "48h": "⚠ >48h/Woche", "40h": "⚡ Überstunden (>40h)",
+            "3n": "🌙 3+ Nächte in Folge", "repos": "🚨 Zu wenig Ruhezeit (N→F)",
+            "6j": "⚠ 6+ Tage ohne Pause", "0r": "❌ Kein Ruhetag"
+        }
+    }
+    msgs = MESSAGES.get(lang, MESSAGES["fr"])
 
     alertes = []
-    if heures > 48:              alertes.append("⚠ Dépassement 48h/semaine")
-    if heures > 40:              alertes.append("⚡ Heures supp. (>40h)")
-    if max_consec_nuits >= 3:    alertes.append("🌙 3+ nuits consécutives")
-    if repos_violation:          alertes.append("🚨 Repos insuffisant (N→M)")
-    if max_consec_work >= 6:     alertes.append("⚠ 6+ jours sans repos")
-    if repos == 0:               alertes.append("❌ Aucun repos cette semaine")
+    if heures > 48:              alertes.append(msgs["48h"])
+    if heures > 40:              alertes.append(msgs["40h"])
+    if max_consec_nuits >= 3:    alertes.append(msgs["3n"])
+    if repos_violation:          alertes.append(msgs["repos"])
+    if max_consec_work >= 6:     alertes.append(msgs["6j"])
+    if repos == 0:               alertes.append(msgs["0r"])
 
-    # Remove "heures supp" if already flagged for 48h
-    if "⚠ Dépassement 48h/semaine" in alertes and "⚡ Heures supp. (>40h)" in alertes:
-        alertes.remove("⚡ Heures supp. (>40h)")
+    if msgs["48h"] in alertes and msgs["40h"] in alertes:
+        alertes.remove(msgs["40h"])
 
     return {
         "heures": heures, "nuits": nuits, "matins": matins,
         "repos": repos, "max_consec_nuits": max_consec_nuits,
         "max_consec_work": max_consec_work, "alertes": alertes,
-        "score_charge": round((heures / 50) * 100)  # 0–100 load score
+        "score_charge": round((heures / 50) * 100)
     }
 
 def coverage_analysis(state):
@@ -151,115 +169,122 @@ def coverage_analysis(state):
         })
     return cov
 
-def equity_score(state):
-    """Compute fairness score 0–100 (100 = perfectly equal hours)"""
-    hours = [calculer_stats(inf["gardes"])["heures"] for inf in state["infirmiers"]]
+def equity_score(state, lang="fr"):
+    hours = [calculer_stats(inf["gardes"], lang)["heures"] for inf in state["infirmiers"]]
     if not hours or max(hours) == 0:
         return 100, 0, 0
     ecart = max(hours) - min(hours)
     score = max(0, 100 - (ecart * 2))
     return score, min(hours), max(hours)
 
-def planning_to_text(state):
-    """Detailed text representation for AI context"""
-    txt  = f"═══ PLANNING — SEMAINE DU {state['semaine']} ═══\n\n"
-    txt += "AFFECTATIONS DES AGENTS :\n"
+def planning_to_text(state, start_dt, lang="fr"):
+    label, days = fmt_week(start_dt, lang)
+    txt  = f"═══ PLANNING — WEEK OF {label} ═══\n\n"
+    txt += "AGENT ASSIGNMENTS:\n"
     for inf in state["infirmiers"]:
         gardes_str = "  ".join(
-            f"{JOURS_FR[i]}={g}" for i, g in enumerate(inf["gardes"])
+            f"{days[i]}={g}" for i, g in enumerate(inf["gardes"])
         )
-        stats = calculer_stats(inf["gardes"])
+        stats = calculer_stats(inf["gardes"], lang)
         alertes_str = (" | ".join(stats["alertes"])) if stats["alertes"] else "OK"
         txt += (f"  • {inf['nom']} [{inf['service']}] : {gardes_str} "
-                f"→ {stats['heures']}h | Nuits:{stats['nuits']} | {alertes_str}\n")
+                f"→ {stats['heures']}h | Nights:{stats['nuits']} | {alertes_str}\n")
 
-    txt += "\nCOUVERTURE JOURNALIÈRE :\n"
+    txt += "\nDAILY COVERAGE:\n"
     cov = coverage_analysis(state)
-    for j, c in zip(state["jours"], cov):
-        status = "✅ OK" if c["ok"] else "❌ CRITIQUE"
-        txt += f"  {j}: {c['M']} Matin / {c['N']} Nuit / {c['S']} Soirée  {status}\n"
+    for j, c in zip(days, cov):
+        status = "✅ OK" if c["ok"] else "❌ CRITICAL"
+        txt += f"  {j}: {c['M']} M / {c['N']} N / {c['S']} S  {status}\n"
 
-    txt += "\nÉQUITÉ DE CHARGE :\n"
-    eq_score, mn, mx = equity_score(state)
-    txt += f"  Score équité : {eq_score}/100  |  Min:{mn}h  Max:{mx}h  Écart:{mx-mn}h\n"
+    txt += "\nLOAD EQUITY:\n"
+    eq_score, mn, mx = equity_score(state, lang)
+    txt += f"  Score : {eq_score}/100  |  Min:{mn}h  Max:{mx}h  Diff:{mx-mn}h\n"
 
-    # Identify violations
     violations = []
     for inf in state["infirmiers"]:
-        stats = calculer_stats(inf["gardes"])
+        stats = calculer_stats(inf["gardes"], lang)
         for al in stats["alertes"]:
             violations.append(f"  ⚑ {inf['nom']} : {al}")
     if violations:
-        txt += "\nVIOLATIONS RÉGLEMENTAIRES DÉTECTÉES :\n" + "\n".join(violations) + "\n"
+        txt += "\nVIOLATIONS DETECTED:\n" + "\n".join(violations) + "\n"
     else:
-        txt += "\n✅ Aucune violation réglementaire détectée.\n"
+        txt += "\n✅ No violations.\n"
 
     return txt
 
-# ── System Prompt ─────────────────────────────────────────────────────────
-def build_system_prompt(state):
-    planning_txt = planning_to_text(state)
-    eq_score, mn, mx = equity_score(state)
+def build_system_prompt(state, start_dt, lang="fr"):
+    planning_txt = planning_to_text(state, start_dt, lang)
+    eq_score, mn, mx = equity_score(state, lang)
     cov = coverage_analysis(state)
-    jours_critiques = [state["jours"][i] for i, c in enumerate(cov) if not c["ok"]]
+    label, days = fmt_week(start_dt, lang)
+    jours_critiques = [days[i] for i, c in enumerate(cov) if not c["ok"]]
 
-    return f"""Tu es **NurseFlow AI** — un assistant expert en gestion des plannings hospitaliers, spécialisé en droit du travail français et en optimisation des ressources humaines soignantes. Tu as un accès complet au planning en temps réel et peux le modifier directement.
+    if lang == "de":
+        role_txt = f"""Du bist **NurseFlow AI** — ein Experte für Krankenhaus-Dienstpläne nach deutschem Arbeitsrecht (ArbZG).
+Antworte **IMMER AUF DEUTSCH**. Du hast Vollzugriff auf den Plan und kannst ihn ändern.
 
 {planning_txt}
 
-══════════════════════════════════════════════════
-RÉFÉRENTIEL RÉGLEMENTAIRE — SECTEUR HOSPITALIER (Droit français)
-══════════════════════════════════════════════════
+ARBEITSZEITGESETZ (ArbZG) & REGELN:
+  M = Frühschicht  | 10h 
+  N = Nachtschicht | 10h
+  S = Spätschicht  | 8h
+  R = Ruhetag / Frei
+  C = Urlaub
 
-CODES DE GARDE :
-  M = Matin   8h00→20h00  | 10h effectives | Pauses : 10h-11h, 17h-18h
-  N = Nuit   20h00→08h00  | 10h effectives | Pauses : 23h-00h, 04h-05h
-  S = Soirée 14h00→22h00  |  8h effectives | Pause  : 18h-18h30
-  R = Repos  (Journée non travaillée)
-  C = Congé  (Annuel, RTT, événementiel)
+WICHTIGSTE REGELN:
+  🔴 KRITISCH: 11 Stunden Ruhezeit zwischen Schichten. N -> M am Folgetag ist VERBOTEN.
+  🔴 KRITISCH: Max 48h / Woche.
+  🟠 WARNUNG: Mehr als 3 Nächte in Folge.
+  🟠 WARNUNG: Mindestens 1 Ruhetag pro Woche.
+"""
+    elif lang == "en":
+        role_txt = f"""You are **NurseFlow AI** — an expert hospital scheduling assistant.
+Always reply in **ENGLISH**. You have full access to the schedule and can modify it.
 
-RÈGLES IMPÉRATIVES (par ordre de priorité) :
-  🔴 CRITIQUE  — Repos minimum 11h entre deux prises de poste (Art. L3131-1 CT)
-               → Enchaînement N→M le lendemain = VIOLATION GRAVE
-  🔴 CRITIQUE  — Maximum 48h de travail effectif par semaine (Art. L3121-20 CT)
-  🟠 ALERTE    — Maximum 2 nuits consécutives recommandé ; 3 = alerte ; 4+ = violation
-  🟠 ALERTE    — Au moins 1 jour de repos par période de 7 jours (Art. L3132-1 CT)
-  🟡 VIGILANCE — Équité de charge : écart max/min < 10h recommandé
-  🟡 VIGILANCE — Couverture minimale : ≥1 agent M ET ≥1 agent N chaque jour
+{planning_txt}
 
-ÉTAT ACTUEL DU PLANNING :
-  • Score d'équité   : {eq_score}/100
-  • Charge min/max   : {mn}h / {mx}h (écart : {mx-mn}h)
-  • Jours critiques  : {', '.join(jours_critiques) if jours_critiques else 'Aucun ✅'}
+SHIFT CODES & RULES:
+  M = Morning | 10h 
+  N = Night   | 10h
+  S = Evening | 8h
+  R = Rest / Off
+  C = Vacation / Leave
 
-══════════════════════════════════════════════════
-MÉTHODE D'ANALYSE ET RÔLE
-══════════════════════════════════════════════════
+CRITICAL RULES:
+  🔴 CRITICAL: 11 hours minimum rest between shifts. N -> M the next day is FORBIDDEN.
+  🔴 CRITICAL: Maximum 48h work per week.
+  🟠 WARNING: More than 3 consecutive nights is not recommended.
+  🟠 WARNING: At least 1 day off per week.
+"""
+    else:
+        role_txt = f"""Tu es **NurseFlow AI** — un assistant expert en gestion des plannings hospitaliers, spécialisé en droit du travail.
+Réponds **TOUJOURS EN FRANÇAIS**. Tu as un accès complet au planning et peux le modifier.
 
-À chaque interaction, applique cette méthode structurée :
+{planning_txt}
 
-ÉTAPE 1 — DIAGNOSTIC RAPIDE (2-3 lignes max)
-  • Identifier le problème principal avec son niveau de criticité
-  • Quantifier l'impact (ex: "Sophie dépasse 48h de 10h")
-  • Signaler si d'autres violations découlent de la modification demandée
+RÉFÉRENTIEL RÉGLEMENTAIRE :
+  M = Matin   | 10h effectives
+  N = Nuit    | 10h effectives
+  S = Soirée  | 8h effectives
+  R = Repos   (Journée non travaillée)
+  C = Congé   (Annuel, RTT)
 
-ÉTAPE 2 — PROPOSITION OPTIMALE
-  • Proposer la solution qui résout le problème SANS en créer d'autres
-  • Si plusieurs options : présenter la MEILLEURE et expliquer brièvement pourquoi
-  • Mentionner l'impact sur l'équité de charge si significatif (>5h de delta)
-  • Vérifier que la couverture journalière est maintenue
+RÈGLES IMPÉRATIVES :
+  🔴 CRITIQUE  — Repos minimum 11h. Enchaînement N→M le lendemain = VIOLATION GRAVE.
+  🔴 CRITIQUE  — Maximum 48h de travail effectif par semaine.
+  🟠 ALERTE    — Maximum 2 nuits consécutives recommandé ; 3 = alerte ; 4+ = violation.
+  🟠 ALERTE    — Au moins 1 jour de repos par période de 7 jours.
+"""
 
-ÉTAPE 3 — EXÉCUTION PRÉCISE
-  • Générer le JSON d'actions avec des indices de jours corrects
-  • Vérifier chaque action avant de l'inclure
+    return role_txt + f"""
+MÉTHODE D'ANALYSE ET RÔLE / ANALYSIS METHOD:
+ÉTAPE 1: Diagnostic rapide / Quick diagnostic
+ÉTAPE 2: Proposition optimale / Optimal proposition
+ÉTAPE 3: Exécution précise / Precise execution
 
-══════════════════════════════════════════════════
-FORMAT DE RÉPONSE STRICT
-══════════════════════════════════════════════════
-
-Pour toute modification du planning, réponds UNIQUEMENT avec ce format :
-
-[1-3 lignes de diagnostic ou confirmation]
+FORMAT DE RÉPONSE STRICT / STRICT JSON FORMAT:
+[1-3 lines of diagnostic/confirmation in {lang.upper()}]
 
 ```json
 [
@@ -268,17 +293,8 @@ Pour toute modification du planning, réponds UNIQUEMENT avec ce format :
   {{"action": "swap", "infirmier1": "Nom1", "infirmier2": "Nom2", "jour_index": 0-6}}
 ]
 ```
-
-MAPPING jour_index :
-  0=Lundi · 1=Mardi · 2=Mercredi · 3=Jeudi · 4=Vendredi · 5=Samedi · 6=Dimanche
-
-RÈGLES JSON :
-  - Utiliser les prénoms et noms EXACTS comme dans le planning
-  - Pour les questions d'analyse sans modification → répondre directement, SANS bloc JSON
-  - Pour une génération de planning → créer autant d'actions "set" que nécessaire
-  - Ne JAMAIS créer d'actions qui violent les règles impératives
-
-LANGUE : Français. TON : Expert, professionnel, orienté solutions. Concis."""
+MAPPING jour_index : 0=Mon/Lun/Mo, 1=Tue/Mar/Di, ..., 6=Sun/Dim/So.
+"""
 
 # ── Routes ────────────────────────────────────────────────────────────────
 @app.route("/")
@@ -287,15 +303,17 @@ def index():
 
 @app.route("/api/planning", methods=["GET"])
 def get_planning():
-    state, date_str = get_state(request.args.get("date"))
+    lang = request.args.get("lang", "fr")
+    state, date_str, start_dt = get_state(request.args.get("date"))
+    label, days = fmt_week(start_dt, lang)
     cov  = coverage_analysis(state)
-    eq_s, mn, mx = equity_score(state)
+    eq_s, mn, mx = equity_score(state, lang)
     data = []
     for inf in state["infirmiers"]:
-        s = calculer_stats(inf["gardes"])
+        s = calculer_stats(inf["gardes"], lang)
         data.append({**inf, **s})
     return jsonify({
-        "jours": state["jours"], "semaine": state["semaine"],
+        "jours": days, "semaine": label,
         "infirmiers": data, "date": date_str, "coverage": cov,
         "equity": {"score": eq_s, "min": mn, "max": mx}
     })
@@ -303,10 +321,8 @@ def get_planning():
 @app.route("/api/planning", methods=["POST"])
 def update_planning():
     body = request.json
-    state, date_str = get_state(body.get("date"))
+    state, date_str, _ = get_state(body.get("date"))
     state["infirmiers"] = body["infirmiers"]
-    if "semaine" in body:
-        state["semaine"] = body["semaine"]
     return jsonify({"ok": True, "date": date_str})
 
 @app.route("/api/infirmier", methods=["POST"])
@@ -345,14 +361,16 @@ def edit_delete_infirmier(inf_id):
 @app.route("/api/analytics", methods=["GET"])
 def analytics():
     date_str   = request.args.get("date")
-    state, actual = get_state(date_str)
+    lang       = request.args.get("lang", "fr")
+    state, actual, start_dt = get_state(date_str)
+    label, days = fmt_week(start_dt, lang)
     cov        = coverage_analysis(state)
-    eq_s, mn, mx = equity_score(state)
-    uncovered  = [state["jours"][i] for i, c in enumerate(cov) if not c["ok"]]
+    eq_s, mn, mx = equity_score(state, lang)
+    uncovered  = [days[i] for i, c in enumerate(cov) if not c["ok"]]
 
     agent_stats = []
     for inf in state["infirmiers"]:
-        s = calculer_stats(inf["gardes"])
+        s = calculer_stats(inf["gardes"], lang)
         agent_stats.append({
             "nom": inf["nom"], "service": inf["service"],
             "couleur": inf.get("couleur", "#64748B"), **s
@@ -372,17 +390,18 @@ def chat():
     api_key    = body.get("api_key", "").strip()
     historique = body.get("historique", [])
     date_str   = body.get("date")
+    lang       = body.get("lang", "fr")
 
     if not message:
         return jsonify({"erreur": "Message vide"}), 400
     if not api_key:
         return jsonify({"erreur": "Clé API manquante. Renseignez votre clé Groq."}), 400
 
-    state, actual = get_state(date_str)
-    system_prompt = build_system_prompt(state)
+    state, actual, start_dt = get_state(date_str)
+    system_prompt = build_system_prompt(state, start_dt, lang)
 
     messages = [{"role": "system", "content": system_prompt}]
-    for h in historique[-10:]:   # Keep last 10 turns for context
+    for h in historique[-10:]:
         messages.append(h)
     messages.append({"role": "user", "content": message})
 
@@ -395,7 +414,7 @@ def chat():
                 "model": GROQ_MODEL,
                 "messages": messages,
                 "max_tokens": 1500,
-                "temperature": 0.1,       # Very deterministic for schedule management
+                "temperature": 0.1,
                 "top_p": 0.9,
             },
             timeout=30
@@ -417,7 +436,60 @@ def chat():
                 logger.warning(f"JSON parse error in AI response: {e}")
 
         texte         = re.sub(r'```json[\s\S]*?```', '', contenu).strip()
-        modifications = [r for act in actions if (r := appliquer_action(act, state))]
+        
+        # Translate modification summaries manually since they are backend generated
+        def tr_act(old, g, day, inf_nom):
+            if lang == "de": return f"{inf_nom} — {day} : {old} → {g}"
+            if lang == "en": return f"{inf_nom} — {day} : {old} → {g}"
+            return f"{inf_nom} — {day} : {old} → {g}"
+        def tr_mv(inf_nom, src_day, dst_day, v):
+            return f"{inf_nom} — {src_day} → {dst_day} ({v})"
+        def tr_sw(i1_nom, i2_nom, day):
+            return f"{i1_nom} ↔ {i2_nom} — {day}"
+
+        label, days = fmt_week(start_dt, lang)
+
+        def appliquer_action_translated(act, state):
+            action = act.get("action", "")
+            infirmiers = state["infirmiers"]
+            def find(nom):
+                if not nom: return None
+                nl = nom.lower().strip()
+                for i in infirmiers:
+                    if i["nom"].lower() == nl: return i
+                for i in infirmiers:
+                    parts = i["nom"].lower().split()
+                    if nl in parts or any(nl in p for p in parts): return i
+                for i in infirmiers:
+                    if nl in i["nom"].lower(): return i
+                return None
+
+            if action == "set":
+                inf = find(act.get("infirmier", ""))
+                idx = act.get("jour_index")
+                g   = act.get("garde", "").upper()
+                if inf and idx is not None and 0 <= idx <= 6 and g in SHIFT_CODES:
+                    old = inf["gardes"][idx]
+                    inf["gardes"][idx] = g
+                    return tr_act(old, g, days[idx], inf['nom'])
+            elif action == "move":
+                inf = find(act.get("infirmier", ""))
+                src, dst = act.get("de"), act.get("vers")
+                if inf and src is not None and dst is not None and 0 <= src <= 6 and 0 <= dst <= 6:
+                    v = inf["gardes"][src]
+                    inf["gardes"][dst] = v
+                    inf["gardes"][src] = "R"
+                    return tr_mv(inf['nom'], days[src], days[dst], v)
+            elif action == "swap":
+                i1  = find(act.get("infirmier1", ""))
+                i2  = find(act.get("infirmier2", ""))
+                idx = act.get("jour_index")
+                if i1 and i2 and idx is not None and 0 <= idx <= 6:
+                    i1["gardes"][idx], i2["gardes"][idx] = i2["gardes"][idx], i1["gardes"][idx]
+                    return tr_sw(i1['nom'], i2['nom'], days[idx])
+            return None
+
+        modifications = [r for act in actions if (r := appliquer_action_translated(act, state))]
 
         usage = resp.json().get("usage", {})
         logger.info(f"Chat — tokens: {usage.get('total_tokens','?')} | "
@@ -437,154 +509,116 @@ def chat():
         logger.error(f"Chat error: {e}", exc_info=True)
         return jsonify({"erreur": f"Erreur inattendue : {str(e)}"}), 500
 
-def appliquer_action(act, state):
-    action     = act.get("action", "")
-    infirmiers = state["infirmiers"]
-
-    def find(nom):
-        if not nom:
-            return None
-        nl = nom.lower().strip()
-        # Exact match first
-        for i in infirmiers:
-            if i["nom"].lower() == nl:
-                return i
-        # Partial match (last name or first name)
-        for i in infirmiers:
-            parts = i["nom"].lower().split()
-            if nl in parts or any(nl in p for p in parts):
-                return i
-        # Contains match
-        for i in infirmiers:
-            if nl in i["nom"].lower():
-                return i
-        return None
-
-    if action == "set":
-        inf = find(act.get("infirmier", ""))
-        idx = act.get("jour_index")
-        g   = act.get("garde", "").upper()
-        if inf and idx is not None and 0 <= idx <= 6 and g in SHIFT_CODES:
-            old = inf["gardes"][idx]
-            inf["gardes"][idx] = g
-            return f"{inf['nom']} — {state['jours'][idx]} : {old} → {g}"
-
-    elif action == "move":
-        inf = find(act.get("infirmier", ""))
-        src, dst = act.get("de"), act.get("vers")
-        if inf and src is not None and dst is not None and 0 <= src <= 6 and 0 <= dst <= 6:
-            v = inf["gardes"][src]
-            inf["gardes"][dst] = v
-            inf["gardes"][src] = "R"
-            return f"{inf['nom']} — {state['jours'][src]} → {state['jours'][dst]} ({v})"
-
-    elif action == "swap":
-        i1  = find(act.get("infirmier1", ""))
-        i2  = find(act.get("infirmier2", ""))
-        idx = act.get("jour_index")
-        if i1 and i2 and idx is not None and 0 <= idx <= 6:
-            i1["gardes"][idx], i2["gardes"][idx] = i2["gardes"][idx], i1["gardes"][idx]
-            return f"Échange {i1['nom']} ↔ {i2['nom']} — {state['jours'][idx]}"
-
-    return None
-
-# ── Excel Export ──────────────────────────────────────────────────────────
 @app.route("/api/export", methods=["POST"])
 def export_excel():
     body     = request.json or {}
     date_str = body.get("date")
-    state, actual = get_state(date_str)
-    start_dt = parse_date(actual)
-    titre    = f"Planning — Semaine du {state['semaine']}"
+    lang     = body.get("lang", "fr")
+    state, actual, start_dt = get_state(date_str)
+    label, days = fmt_week(start_dt, lang)
+
+    T = {
+        "fr": {
+            "title": f"Planning — Semaine du {label}",
+            "sub": "Généré le {date} · NurseFlow Planning System",
+            "legend": "LÉGENDE DES CODES",
+            "M": "Matin", "N": "Nuit", "S": "Soirée", "R": "Repos", "C": "Congé",
+            "headers": ["#", "Infirmier / Agent", "Service"] + days + ["Total H", "Nuits", "Score", "Alertes"],
+            "cov": "COUVERTURE JOURNALIÈRE",
+            "eq": "Score d'équité : {eq}/100  ·  Charge min : {mn}h  ·  Charge max : {mx}h  ·  Écart : {df}h"
+        },
+        "en": {
+            "title": f"Schedule — Week of {label}",
+            "sub": "Generated on {date} · NurseFlow Planning System",
+            "legend": "CODE LEGEND",
+            "M": "Morning", "N": "Night", "S": "Evening", "R": "Rest", "C": "Leave",
+            "headers": ["#", "Nurse / Agent", "Department"] + days + ["Total H", "Nights", "Score", "Alerts"],
+            "cov": "DAILY COVERAGE",
+            "eq": "Equity Score : {eq}/100  ·  Min Load : {mn}h  ·  Max Load : {mx}h  ·  Diff : {df}h"
+        },
+        "de": {
+            "title": f"Dienstplan — Woche vom {label}",
+            "sub": "Generiert am {date} · NurseFlow Planning System",
+            "legend": "CODE-LEGENDE",
+            "M": "Früh", "N": "Nacht", "S": "Spät", "R": "Frei", "C": "Urlaub",
+            "headers": ["#", "Pflegekraft", "Abteilung"] + days + ["Gesamt H", "Nächte", "Score", "Warnungen"],
+            "cov": "TÄGLICHE ABDECKUNG",
+            "eq": "Gerechtigkeits-Score : {eq}/100  ·  Min Last : {mn}h  ·  Max Last : {mx}h  ·  Diff : {df}h"
+        }
+    }
+    t = T.get(lang, T["fr"])
 
     wb = Workbook()
     ws = wb.active
-    ws.title = "Planning Infirmiers"
+    ws.title = "Planning"
     ws.sheet_view.showGridLines = False
     ws.freeze_panes = "D6"
 
-    # ── Color palette ──
+    # Color palette
     C = {
-        "navy":   "0F172A", "navy_m":  "1E3A5F", "navy_l":  "EFF6FF",
-        "blue":   "1D4ED8", "blue_l":  "DBEAFE",
-        "night":  "0F172A", "night_l": "CBD5E1",
-        "amber":  "92400E", "amber_l": "FEF3C7",
-        "red":    "991B1B", "red_l":   "FEE2E2",
-        "green":  "14532D", "green_l": "DCFCE7",
-        "gray":   "1E293B", "gray_m":  "475569", "gray_l":  "F8FAFC",
-        "white":  "FFFFFF", "bg":      "F1F5F9",
+        "navy": "0F172A", "navy_m": "1E3A5F", "navy_l": "EFF6FF",
+        "blue": "1D4ED8", "blue_l": "DBEAFE",
+        "night": "0F172A", "night_l": "CBD5E1",
+        "amber": "92400E", "amber_l": "FEF3C7",
+        "red": "991B1B", "red_l": "FEE2E2",
+        "green": "14532D", "green_l": "DCFCE7",
+        "gray": "1E293B", "gray_m": "475569", "gray_l": "F8FAFC",
+        "white": "FFFFFF", "bg": "F1F5F9",
         "soiree": "4C1D95", "soiree_l":"EDE9FE",
     }
 
-    def fl(h):    return PatternFill("solid", fgColor=h)
+    def fl(h): return PatternFill("solid", fgColor=h)
     def ft(h, bold=False, sz=10): return Font(name="Calibri", color=h, bold=bold, size=sz)
-    def ctr():    return Alignment(horizontal="center", vertical="center", wrap_text=True)
-    def lft():    return Alignment(horizontal="left",   vertical="center", wrap_text=True)
+    def ctr(): return Alignment(horizontal="center", vertical="center", wrap_text=True)
+    def lft(): return Alignment(horizontal="left", vertical="center", wrap_text=True)
     def brd():
         s = Side(style="thin", color="E2E8F0")
         return Border(left=s, right=s, top=s, bottom=s)
-    def brd_bold():
-        s = Side(style="medium", color="CBD5E1")
-        return Border(left=s, right=s, top=s, bottom=s)
 
     SHIFT_STYLE = {
-        "M": (C["blue_l"],   C["blue"]),
-        "N": (C["night"],    C["night_l"]),
+        "M": (C["blue_l"], C["blue"]),
+        "N": (C["night"], C["night_l"]),
         "S": (C["soiree_l"], C["soiree"]),
-        "R": (C["navy_l"],   C["navy_m"]),
-        "C": (C["amber_l"],  C["amber"]),
+        "R": (C["navy_l"], C["navy_m"]),
+        "C": (C["amber_l"], C["amber"]),
     }
     MAX_COL = 14
     TOTAL_ROWS = 6 + len(state["infirmiers"]) + 4
 
-    # Background
     for r in ws.iter_rows(1, TOTAL_ROWS, 1, MAX_COL):
-        for c in r:
-            c.fill = fl(C["bg"])
+        for c in r: c.fill = fl(C["bg"])
 
-    # Row 1 — Title
     ws.merge_cells(f"A1:{get_column_letter(MAX_COL)}1")
-    ws["A1"] = f"🏥  {titre}"
+    ws["A1"] = f"🏥  {t['title']}"
     ws["A1"].font = Font(name="Calibri", color=C["white"], bold=True, size=15)
     ws["A1"].fill = fl(C["navy"])
     ws["A1"].alignment = ctr()
     ws.row_dimensions[1].height = 38
 
-    # Row 2 — Subtitle
     ws.merge_cells(f"A2:{get_column_letter(MAX_COL)}2")
-    generated = datetime.datetime.now().strftime("%d/%m/%Y à %H:%M")
-    ws["A2"] = f"Généré le {generated}  ·  Shifts 10h (M/N)  ·  8h (Soirée)  ·  NurseFlow Planning System"
+    ws["A2"] = t["sub"].format(date=datetime.datetime.now().strftime("%d/%m/%Y %H:%M"))
     ws["A2"].font = Font(name="Calibri", color=C["gray_m"], size=8, italic=True)
     ws["A2"].fill = fl(C["navy_l"])
     ws["A2"].alignment = ctr()
     ws.row_dimensions[2].height = 15
-
-    # Row 3 — blank separator
     ws.row_dimensions[3].height = 6
 
-    # Row 4 — Legend
-    legends = [("M","Matin 8h–20h",C["blue_l"],C["blue"]),
-               ("N","Nuit 20h–8h",C["night"],C["night_l"]),
-               ("S","Soirée 14h–22h",C["soiree_l"],C["soiree"]),
-               ("R","Repos",C["navy_l"],C["navy_m"]),
-               ("C","Congé",C["amber_l"],C["amber"])]
+    legends = [("M",t["M"],C["blue_l"],C["blue"]),
+               ("N",t["N"],C["night"],C["night_l"]),
+               ("S",t["S"],C["soiree_l"],C["soiree"]),
+               ("R",t["R"],C["navy_l"],C["navy_m"]),
+               ("C",t["C"],C["amber_l"],C["amber"])]
     ws.merge_cells("A4:C4")
-    ws["A4"] = "LÉGENDE DES CODES"
+    ws["A4"] = t["legend"]
     ws["A4"].font = ft(C["gray_m"], True, 8)
-    ws["A4"].fill = fl(C["bg"])
-    ws["A4"].alignment = lft()
+    ws["A4"].fill = fl(C["bg"]); ws["A4"].alignment = lft()
     for i, (code, label, bg, fg) in enumerate(legends, 4):
         c = ws.cell(4, i, f"  {code} = {label}")
         c.fill = fl(bg); c.font = ft(fg, True, 8); c.alignment = ctr()
     ws.row_dimensions[4].height = 14
-
-    # Row 5 — blank
     ws.row_dimensions[5].height = 6
 
-    # Row 6 — Headers
-    hdrs  = ["#", "Infirmier / Agent", "Service"] + state["jours"] + ["Total H", "Nuits", "Score", "Alertes"]
-    wcols = [4, 22, 13] + [10]*7 + [9, 7, 8, 28]
-    for i, (h, w) in enumerate(zip(hdrs, wcols), 1):
+    for i, (h, w) in enumerate(zip(t["headers"], [4, 22, 13] + [10]*7 + [9, 7, 8, 28]), 1):
         c = ws.cell(6, i, h)
         c.fill = fl(C["navy_m"]); c.font = ft(C["white"], True, 9)
         c.alignment = ctr(); c.border = brd()
@@ -596,83 +630,69 @@ def export_excel():
         row = 7 + idx
         ws.row_dimensions[row].height = 28
         rb  = C["white"] if idx % 2 == 0 else C["gray_l"]
+        
+        c1 = ws.cell(row, 1, idx+1); c1.fill=fl(rb); c1.font=ft(C["gray_m"],sz=9); c1.alignment=ctr(); c1.border=brd()
+        c2 = ws.cell(row, 2, inf["nom"]); c2.fill=fl(rb); c2.font=ft(C["gray"],True,10); c2.alignment=lft(); c2.border=brd()
+        c3 = ws.cell(row, 3, inf["service"]); c3.fill=fl(rb); c3.font=ft(C["gray_m"],sz=9); c3.alignment=ctr(); c3.border=brd()
 
-        # # cell
-        c1 = ws.cell(row, 1, idx+1); c1.fill=fl(rb)
-        c1.font=ft(C["gray_m"],sz=9); c1.alignment=ctr(); c1.border=brd()
-
-        # Name cell
-        c2 = ws.cell(row, 2, inf["nom"]); c2.fill=fl(rb)
-        c2.font=ft(C["gray"],True,10); c2.alignment=lft(); c2.border=brd()
-
-        # Service
-        c3 = ws.cell(row, 3, inf["service"]); c3.fill=fl(rb)
-        c3.font=ft(C["gray_m"],sz=9); c3.alignment=ctr(); c3.border=brd()
-
-        # Shift cells
         for d, g in enumerate(inf["gardes"]):
             bg, fg = SHIFT_STYLE.get(g, (rb, C["gray"]))
-            c = ws.cell(row, 4+d, g)
+            disp_code = g
+            if lang == "de": disp_code = {"M":"F", "N":"N", "S":"S", "R":"R", "C":"U"}.get(g, g)
+            elif lang == "en": disp_code = {"M":"M", "N":"N", "S":"E", "R":"R", "C":"V"}.get(g, g)
+
+            c = ws.cell(row, 4+d, disp_code)
             c.fill=fl(bg); c.font=ft(fg,True,11); c.alignment=ctr(); c.border=brd()
 
-        stats = calculer_stats(inf["gardes"])
+        stats = calculer_stats(inf["gardes"], lang)
         h, n  = stats["heures"], stats["nuits"]
 
-        # Total hours
         hbg = C["red_l"] if h > 48 else (C["green_l"] if h >= 30 else C["amber_l"])
         hfg = C["red"]   if h > 48 else (C["green"]   if h >= 30 else C["amber"])
-        ch = ws.cell(row, 11, f"{h}h"); ch.fill=fl(hbg); ch.font=ft(hfg,True)
-        ch.alignment=ctr(); ch.border=brd()
+        ch = ws.cell(row, 11, f"{h}h"); ch.fill=fl(hbg); ch.font=ft(hfg,True); ch.alignment=ctr(); ch.border=brd()
 
-        # Nights
         nbg = C["amber_l"] if n >= 3 else C["bg"]
         nfg = C["amber"]   if n >= 3 else C["gray_m"]
-        cn = ws.cell(row, 12, n); cn.fill=fl(nbg); cn.font=ft(nfg,True)
-        cn.alignment=ctr(); cn.border=brd()
+        cn = ws.cell(row, 12, n); cn.fill=fl(nbg); cn.font=ft(nfg,True); cn.alignment=ctr(); cn.border=brd()
 
-        # Load score
         sc  = stats["score_charge"]
         scbg = C["red_l"] if sc > 90 else (C["green_l"] if sc > 50 else C["amber_l"])
         scfg = C["red"]   if sc > 90 else (C["green"]   if sc > 50 else C["amber"])
-        cs = ws.cell(row, 13, f"{sc}%"); cs.fill=fl(scbg); cs.font=ft(scfg,True,9)
-        cs.alignment=ctr(); cs.border=brd()
+        cs = ws.cell(row, 13, f"{sc}%"); cs.fill=fl(scbg); cs.font=ft(scfg,True,9); cs.alignment=ctr(); cs.border=brd()
 
-        # Alerts
         al_txt = " | ".join(stats["alertes"])
         abg = C["red_l"] if al_txt else rb
         afg = C["red"]   if al_txt else C["gray_m"]
-        ca  = ws.cell(row, 14, al_txt); ca.fill=fl(abg)
-        ca.font=ft(afg,sz=8); ca.alignment=lft(); ca.border=brd()
+        ca  = ws.cell(row, 14, al_txt); ca.fill=fl(abg); ca.font=ft(afg,sz=8); ca.alignment=lft(); ca.border=brd()
 
-    # Coverage row
     cr = 7 + len(state["infirmiers"])
     ws.row_dimensions[cr].height = 22
     ws.merge_cells(f"A{cr}:C{cr}")
-    ws[f"A{cr}"] = "COUVERTURE JOURNALIÈRE"
-    ws[f"A{cr}"].fill=fl(C["navy"]); ws[f"A{cr}"].font=ft(C["white"],True,8)
-    ws[f"A{cr}"].alignment=ctr()
+    ws[f"A{cr}"] = t["cov"]
+    ws[f"A{cr}"].fill=fl(C["navy"]); ws[f"A{cr}"].font=ft(C["white"],True,8); ws[f"A{cr}"].alignment=ctr()
     for d, c in enumerate(cov):
-        cell = ws.cell(cr, 4+d, f"M:{c['M']} N:{c['N']}")
+        if lang == "de": cov_str = f"F:{c['M']} N:{c['N']}"
+        elif lang == "en": cov_str = f"M:{c['M']} N:{c['N']}"
+        else: cov_str = f"M:{c['M']} N:{c['N']}"
+        
+        cell = ws.cell(cr, 4+d, cov_str)
         bg   = C["green_l"] if c["ok"] else C["red_l"]
         fg   = C["green"]   if c["ok"] else C["red"]
         cell.fill=fl(bg); cell.font=ft(fg,True,8); cell.alignment=ctr(); cell.border=brd()
 
-    # Equity row
     er = cr + 1
-    eq_s, mn, mx = equity_score(state)
+    eq_s, mn, mx = equity_score(state, lang)
     ws.row_dimensions[er].height = 18
     ws.merge_cells(f"A{er}:{get_column_letter(MAX_COL)}{er}")
-    ws[f"A{er}"] = (f"Score d'équité : {eq_s}/100  ·  Charge min : {mn}h  ·  "
-                    f"Charge max : {mx}h  ·  Écart : {mx-mn}h")
+    ws[f"A{er}"] = t["eq"].format(eq=eq_s, mn=mn, mx=mx, df=mx-mn)
     ebg = C["green_l"] if eq_s >= 80 else (C["amber_l"] if eq_s >= 60 else C["red_l"])
     efg = C["green"]   if eq_s >= 80 else (C["amber"]   if eq_s >= 60 else C["red"])
-    ws[f"A{er}"].fill=fl(ebg); ws[f"A{er}"].font=ft(efg,sz=8)
-    ws[f"A{er}"].alignment=ctr()
+    ws[f"A{er}"].fill=fl(ebg); ws[f"A{er}"].font=ft(efg,sz=8); ws[f"A{er}"].alignment=ctr()
 
     buf = io.BytesIO()
     wb.save(buf)
     buf.seek(0)
-    fn = f"planning_infirmiers_{actual}.xlsx"
+    fn = f"planning_{lang}_{actual}.xlsx"
     return send_file(buf, as_attachment=True, download_name=fn,
                      mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 
@@ -688,7 +708,7 @@ def reset():
 def health():
     return jsonify({
         "status": "ok",
-        "version": "2.0.0",
+        "version": "2.1.0-multilang",
         "weeks_stored": len(planning_db),
         "staff_count": len(STAFF_LIST),
         "timestamp": datetime.datetime.now().isoformat()
