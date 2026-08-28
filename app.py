@@ -12,6 +12,12 @@ from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
 
 # ── App setup ───────────────────────────────────────────────────────────
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
+
 app = Flask(__name__)
 CORS(app)
 logging.basicConfig(level=logging.INFO)
@@ -32,7 +38,7 @@ JOURS = {
 SHIFT_CODES = {"M", "N", "R", "C", "S"}   
 SHIFT_H = {"M": 10, "N": 10, "S": 8, "R": 0, "C": 0}
 
-GROQ_MODEL   = "llama-3.3-70b-versatile"
+GROQ_MODEL   = os.environ.get("GROQ_MODEL", "llama3-70b-8192")
 GROQ_ENDPOINT = "https://api.groq.com/openai/v1/chat/completions"
 
 # ── Date helpers ─────────────────────────────────────────────────────────
@@ -387,7 +393,7 @@ def analytics():
 def chat():
     body       = request.json
     message    = body.get("message", "").strip()
-    api_key    = body.get("api_key", "").strip()
+    api_key    = body.get("api_key", "").strip() or os.environ.get("GROQ_API_KEY", "").strip()
     historique = body.get("historique", [])
     date_str   = body.get("date")
     lang       = body.get("lang", "fr")
